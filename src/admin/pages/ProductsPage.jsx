@@ -1,0 +1,161 @@
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Search, Plus, Package, Star, Eye, Edit, Trash2 } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { getAllProducts, deleteProduct } from "@/lib/productStorage";
+
+const categoryStock = [
+  { name: "Electronics", products: 3420, active: 3180 },
+  { name: "Fashion", products: 4200, active: 3950 },
+  { name: "Home", products: 2100, active: 1980 },
+  { name: "Beauty", products: 1800, active: 1720 },
+  { name: "Sports", products: 1320, active: 1210 },
+];
+
+const statusStyle = {
+  Active: "badge-success", "Low Stock": "badge-warning", "Out of Stock": "badge-danger", Inactive: "badge-neutral",
+};
+
+export default function ProductsPage() {
+  const navigate = useNavigate();
+  const [search, setSearch] = useState("");
+  const [filterStatus, setFilterStatus] = useState("All");
+  const [products, setProducts] = useState([]);
+
+  useEffect(() => {
+    // Load products from localStorage
+    setProducts(getAllProducts());
+  }, []);
+
+  // Determine status based on stock
+  const getStatus = (product) => {
+    if (product.stock === 0) return "Out of Stock";
+    if (product.stock < 50) return "Low Stock";
+    return "Active";
+  };
+
+  // Apply filtering
+  const filtered = products
+    .map(p => ({ ...p, status: getStatus(p) }))
+    .filter((p) => {
+      const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
+      const matchesFilter = filterStatus === "All" || p.status === filterStatus;
+      return matchesSearch && matchesFilter;
+    });
+
+  const handleDelete = (id) => {
+    if (window.confirm("Are you sure you want to delete this product?")) {
+      deleteProduct(id);
+      setProducts(getAllProducts());
+    }
+  };
+
+  const handleView = (product) => {
+    alert(`Viewing: ${product.name}\n\nCategory: ${product.category}\nSeller: ${product.seller}\nPrice: ${product.price}\nStock: ${product.stock}\n\n${product.description}`);
+  };
+
+  const handleEdit = (product) => {
+    // For now, show a simple edit dialog. In a real app, you'd navigate to an edit page
+    const newName = prompt("Edit product name:", product.name);
+    if (newName && newName !== product.name) {
+      const newPrice = prompt("Edit price:", product.price);
+      const newStock = prompt("Edit stock:", product.stock.toString());
+      if (newPrice && newStock) {
+        const updatedProducts = products.map(p =>
+          p.id === product.id
+            ? { ...p, name: newName, price: newPrice, stock: parseInt(newStock) }
+            : p
+        );
+        setProducts(updatedProducts);
+        localStorage.setItem("products", JSON.stringify(updatedProducts));
+        alert("Product updated successfully!");
+      }
+    }
+  };
+
+  return (
+    <div className="space-y-5">
+      <div className="page-header flex items-center justify-between">
+        <div>
+          <h1 className="page-title">Products</h1>
+          <p className="page-subtitle">Manage product catalog, inventory, and listings</p>
+        </div>
+        <Button onClick={() => navigate("/admin/products/add")}><Plus className="h-4 w-4 mr-2" />Add Product</Button>
+      </div>
+
+      {/* Category Stock Chart */}
+      <div className="chart-card">
+        <h3 className="chart-title">Products by Category</h3>
+        <p className="chart-subtitle mb-3">Total vs active listings per category</p>
+        <ResponsiveContainer width="100%" height={200}>
+          <BarChart data={categoryStock} margin={{ top: 0, right: 10, left: -10, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" />
+            <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="hsl(220, 9%, 46%)" />
+            <YAxis tick={{ fontSize: 11 }} stroke="hsl(220, 9%, 46%)" />
+            <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+            <Bar dataKey="products" name="Total" fill="hsl(220, 14%, 80%)" radius={[3, 3, 0, 0]} />
+            <Bar dataKey="active" name="Active" fill="hsl(25, 95%, 53%)" radius={[3, 3, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input placeholder="Search products..." className="pl-9 bg-card" value={search} onChange={(e) => setSearch(e.target.value)} />
+        </div>
+        {["All", "Active", "Low Stock", "Out of Stock"].map((f) => (
+          <Button key={f} onClick={() => setFilterStatus(f)} variant={f === filterStatus ? "default" : "outline"} size="sm" className="text-xs">{f}</Button>
+        ))}
+      </div>
+
+      <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="data-table">
+            <thead>
+              <tr><th>Product</th><th>Category</th><th>Seller</th><th>Price</th><th>Stock</th><th>Sold</th><th>Rating</th><th>Status</th><th>Actions</th></tr>
+            </thead>
+            <tbody>
+              {filtered.map((p) => (
+                <tr key={p.id}>
+                  <td>
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-lg">{p.image}</span>
+                      <span className="font-medium text-card-foreground text-sm">{p.name}</span>
+                    </div>
+                  </td>
+                  <td className="text-muted-foreground">{p.category}</td>
+                  <td className="text-card-foreground">{p.seller}</td>
+                  <td>
+                    <div>
+                      <span className="font-medium text-card-foreground">{p.price}</span>
+                      <span className="text-[10px] text-muted-foreground line-through ml-1">{p.mrp}</span>
+                    </div>
+                  </td>
+                  <td className="text-card-foreground">{p.stock.toLocaleString()}</td>
+                  <td className="text-card-foreground">{(p.price ?? 0).toLocaleString()}</td>
+                  <td>
+                    <div className="flex items-center gap-1">
+                      <Star className="h-3 w-3 text-warning fill-warning" />
+                      <span className="text-xs font-medium text-card-foreground">{p.rating}</span>
+                    </div>
+                  </td>
+                  <td><span className={statusStyle[p.status]}>{p.status}</span></td>
+                  <td>
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => handleView(p)} className="rounded p-1.5 hover:bg-secondary transition-colors" title="View"><Eye className="h-3.5 w-3.5 text-muted-foreground" /></button>
+                      <button onClick={() => handleEdit(p)} className="rounded p-1.5 hover:bg-secondary transition-colors" title="Edit"><Edit className="h-3.5 w-3.5 text-muted-foreground" /></button>
+                      <button onClick={() => handleDelete(p.id)} className="rounded p-1.5 hover:bg-secondary transition-colors" title="Delete"><Trash2 className="h-3.5 w-3.5 text-destructive" /></button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
