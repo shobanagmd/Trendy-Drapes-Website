@@ -51,7 +51,12 @@ const Cart = () => {
                     <p className="font-body text-xs text-muted-foreground mt-1">Size: {item.size}</p>
                     <p className="font-body font-semibold text-sm text-foreground mt-2">₹{item.product.price.toLocaleString("en-IN")}</p>
                     <div className="flex items-center gap-3 mt-3">
-                      <button onClick={() => updateQuantity(item.product.id, item.quantity - 1)} className="w-8 h-8 border border-border flex items-center justify-center hover:bg-secondary">
+                      <button
+                        onClick={() => {
+                          if (item.quantity > 1) updateQuantity(item.product.id, item.quantity - 1);
+                        }}
+                        className={`w-8 h-8 border border-border flex items-center justify-center hover:bg-secondary ${item.quantity <= 1 ? "opacity-40 cursor-not-allowed" : ""}`}
+                      >
                         <Minus size={14} />
                       </button>
                       <span className="font-body text-sm w-6 text-center">{item.quantity}</span>

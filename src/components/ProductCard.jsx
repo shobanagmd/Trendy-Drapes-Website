@@ -1,18 +1,18 @@
 import { useState } from "react";
 import { Heart, ShoppingBag, Trash2 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "@/contexts/CartContext";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { useLocalProducts } from "@/hooks/useLocalProducts";
-import { products as staticProducts } from "@/data/products";
 import { toast } from "sonner";
 
 const ProductCard = ({ product }) => {
   const [hovered, setHovered] = useState(false);
   const [nameExpanded, setNameExpanded] = useState(false);
-  const { toggleWishlist, isInWishlist, addToCart, removeFromCart } = useCart();
+  const { toggleWishlist, isInWishlist, addToCart, removeFromCart, items } = useCart();
   const { isAdmin } = useAdminAuth();
   const { removeProduct } = useLocalProducts();
+  const navigate = useNavigate();
   const wishlisted = isInWishlist(product.id);
   const shouldShowMore = product.name?.length > 45;
 
@@ -25,6 +25,20 @@ const ProductCard = ({ product }) => {
       toggleWishlist(product.id);
       toast.success("Product Removed");
     }
+  };
+
+  const handleAddToCart = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Avoid duplicate: only add if not already in cart
+    const alreadyInCart = items.some((i) => i.product.id === product.id);
+    if (!alreadyInCart) {
+      addToCart(product);
+      toast.success("Added to Cart");
+    } else {
+      toast.info("Already in cart");
+    }
+    navigate(`/product/${product.id}`);
   };
 
   return (
@@ -52,25 +66,16 @@ const ProductCard = ({ product }) => {
 
           {/* Wishlist button */}
           <button
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              toggleWishlist(product.id);
-            }}
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleWishlist(product.id); }}
             className="absolute top-3 right-3 p-2 bg-card/80 backdrop-blur-sm rounded-full transition-all duration-300 hover:bg-card"
           >
-            <Heart
-              size={18}
-              className={wishlisted ? "fill-rose text-rose" : "text-foreground"}
-            />
+            <Heart size={18} className={wishlisted ? "fill-rose text-rose" : "text-foreground"} />
           </button>
 
           {/* Delete button for admin */}
           {isAdmin && (
-            <button
-              onClick={handleDelete}
-              className="absolute top-3 right-14 p-2 bg-destructive/80 backdrop-blur-sm rounded-full transition-all duration-300 hover:bg-destructive"
-            >
+            <button onClick={handleDelete}
+              className="absolute top-3 right-14 p-2 bg-destructive/80 backdrop-blur-sm rounded-full transition-all duration-300 hover:bg-destructive">
               <Trash2 size={18} className="text-destructive-foreground" />
             </button>
           )}
@@ -86,43 +91,24 @@ const ProductCard = ({ product }) => {
               {product.name}
             </h3>
             {shouldShowMore && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setNameExpanded((value) => !value);
-                }}
-                className="text-xs text-primary hover:text-primary/80 font-semibold focus:outline-none"
-              >
+              <button type="button"
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setNameExpanded((v) => !v); }}
+                className="text-xs text-primary hover:text-primary/80 font-semibold focus:outline-none">
                 {nameExpanded ? "Less" : "More"}
               </button>
             )}
           </div>
           <div className="flex items-center gap-2 pt-1">
-            <span className="font-body font-semibold text-sm text-foreground">
-              ₹{product.price.toLocaleString("en-IN")}
-            </span>
+            <span className="font-body font-semibold text-sm text-foreground">₹{product.price.toLocaleString("en-IN")}</span>
             {product.originalPrice > product.price && (
               <>
-                <span className="font-body text-xs text-muted-foreground line-through">
-                  ₹{product.originalPrice.toLocaleString("en-IN")}
-                </span>
-                <span className="font-body text-xs text-rose font-medium">
-                  ({product.discount}% OFF)
-                </span>
+                <span className="font-body text-xs text-muted-foreground line-through">₹{product.originalPrice.toLocaleString("en-IN")}</span>
+                <span className="font-body text-xs text-rose font-medium">({product.discount}% OFF)</span>
               </>
             )}
           </div>
-          <button
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              addToCart(product);
-              toast.success("Added to Cart");
-            }}
-            className="w-full mt-2 py-2.5 bg-primary text-primary-foreground font-body text-xs tracking-wider uppercase hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
-          >
+          <button onClick={handleAddToCart}
+            className="w-full mt-2 py-2.5 bg-primary text-primary-foreground font-body text-xs tracking-wider uppercase hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
             <ShoppingBag size={14} /> Add to Cart
           </button>
         </div>

@@ -8,18 +8,11 @@ const colorMap = {
   Black: "#1A1A1A", White: "#F5F5F5", Yellow: "#EAB308",
 };
 
-const FilterSection = ({
-  title,
-  children,
-  defaultOpen = true,
-}) => {
+const FilterSection = ({ title, children, defaultOpen = true }) => {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div className="border-b border-border py-4">
-      <button
-        onClick={() => setOpen(!open)}
-        className="flex items-center justify-between w-full text-left"
-      >
+      <button onClick={() => setOpen(!open)} className="flex items-center justify-between w-full text-left">
         <span className="filter-section-title mb-0">{title}</span>
         {open ? <ChevronUp size={14} className="text-muted-foreground" /> : <ChevronDown size={14} className="text-muted-foreground" />}
       </button>
@@ -29,105 +22,187 @@ const FilterSection = ({
 };
 
 const FilterSidebar = ({ filters, onFilterChange, isOpen, onClose }) => {
-  const toggleArrayFilter = (key, value) => {
-    const arr = filters[key] || [];
-    const next = arr.includes(value) ? arr.filter((v) => v !== value) : [...arr, value];
+
+  // ── Single-select helper for the NEW single-select filters ──────────
+  // Clicking the already-selected value deselects it; clicking a new one replaces.
+  const handleSingleSelect = (key, value) => {
+    const current = filters[key] || [];
+    const next = current.includes(value) ? [] : [value];
     onFilterChange({ ...filters, [key]: next });
+  };
+
+  // ── Price: unchanged ────────────────────────────────────────────────
+  const handlePriceSelect = (minVal) => {
+    const next = filters.priceRange.includes(minVal) ? [] : [minVal];
+    onFilterChange({ ...filters, priceRange: next });
+  };
+
+  // ── Discount: unchanged ─────────────────────────────────────────────
+  const handleDiscountSelect = (d) => {
+    const next = filters.discount.includes(d) ? [] : [d];
+    onFilterChange({ ...filters, discount: next });
   };
 
   const content = (
     <div className="space-y-0">
+
+      {/* ── PRICE (unchanged) ── */}
       <FilterSection title="Price">
         {filterOptions.price.map((p) => (
           <label key={p.label} className="flex items-center gap-2 cursor-pointer text-sm font-body text-foreground">
             <input
-              type="checkbox"
+              type="radio"
+              name="priceFilter"
               checked={filters.priceRange.includes(p.min)}
-              onChange={() => {
-                const next = filters.priceRange.includes(p.min)
-                  ? filters.priceRange.filter((v) => v !== p.min)
-                  : [...filters.priceRange, p.min];
-                onFilterChange({ ...filters, priceRange: next });
-              }}
+              onChange={() => handlePriceSelect(p.min)}
               className="accent-accent"
             />
             {p.label}
           </label>
         ))}
+        {filters.priceRange.length > 0 && (
+          <button onClick={() => onFilterChange({ ...filters, priceRange: [] })} className="text-xs text-accent hover:underline mt-1">
+            Clear Price
+          </button>
+        )}
       </FilterSection>
 
+      {/* ── DISCOUNT (unchanged) ── */}
       <FilterSection title="Discount">
         {filterOptions.discount.map((d) => (
           <label key={d} className="flex items-center gap-2 cursor-pointer text-sm font-body text-foreground">
-            <input type="checkbox" checked={filters.discount.includes(d)} onChange={() => toggleArrayFilter("discount", d)} className="accent-accent" />
+            <input
+              type="radio"
+              name="discountFilter"
+              checked={filters.discount.includes(d)}
+              onChange={() => handleDiscountSelect(d)}
+              className="accent-accent"
+            />
             {d}
           </label>
         ))}
+        {filters.discount.length > 0 && (
+          <button onClick={() => onFilterChange({ ...filters, discount: [] })} className="text-xs text-accent hover:underline mt-1">
+            Clear Discount
+          </button>
+        )}
       </FilterSection>
 
+      {/* ── SUBCATEGORY → single-select radio ── */}
       <FilterSection title="Sub Category">
         {filterOptions.subCategories.map((s) => (
           <label key={s} className="flex items-center gap-2 cursor-pointer text-sm font-body text-foreground">
-            <input type="checkbox" checked={filters.subCategories.includes(s)} onChange={() => toggleArrayFilter("subCategories", s)} className="accent-accent" />
+            <input
+              type="radio"
+              name="subCategoryFilter"
+              checked={(filters.subCategories || []).includes(s)}
+              onChange={() => handleSingleSelect("subCategories", s)}
+              className="accent-accent"
+            />
             {s}
           </label>
         ))}
+        {(filters.subCategories || []).length > 0 && (
+          <button onClick={() => onFilterChange({ ...filters, subCategories: [] })} className="text-xs text-accent hover:underline mt-1">
+            Clear Sub Category
+          </button>
+        )}
       </FilterSection>
 
+      {/* ── COLOR → single-select radio (color swatches) ── */}
       <FilterSection title="Color">
         <div className="flex flex-wrap gap-2">
           {filterOptions.colors.map((c) => (
             <button
               key={c}
-              onClick={() => toggleArrayFilter("colors", c)}
+              onClick={() => handleSingleSelect("colors", c)}
               className={`w-7 h-7 rounded-full border-2 transition-all ${
-                filters.colors.includes(c) ? "border-accent scale-110" : "border-border"
+                (filters.colors || []).includes(c) ? "border-accent scale-110 ring-2 ring-accent ring-offset-1" : "border-border"
               }`}
               style={{ backgroundColor: colorMap[c] || "#ccc" }}
               title={c}
             />
           ))}
         </div>
+        {(filters.colors || []).length > 0 && (
+          <button onClick={() => onFilterChange({ ...filters, colors: [] })} className="text-xs text-accent hover:underline mt-2">
+            Clear Color
+          </button>
+        )}
       </FilterSection>
 
+      {/* ── FABRIC → single-select radio ── */}
       <FilterSection title="Fabric">
         {filterOptions.fabrics.map((f) => (
           <label key={f} className="flex items-center gap-2 cursor-pointer text-sm font-body text-foreground">
-            <input type="checkbox" checked={filters.fabrics.includes(f)} onChange={() => toggleArrayFilter("fabrics", f)} className="accent-accent" />
+            <input
+              type="radio"
+              name="fabricFilter"
+              checked={(filters.fabrics || []).includes(f)}
+              onChange={() => handleSingleSelect("fabrics", f)}
+              className="accent-accent"
+            />
             {f}
           </label>
         ))}
+        {(filters.fabrics || []).length > 0 && (
+          <button onClick={() => onFilterChange({ ...filters, fabrics: [] })} className="text-xs text-accent hover:underline mt-1">
+            Clear Fabric
+          </button>
+        )}
       </FilterSection>
 
+      {/* ── WORK → single-select radio ── */}
       <FilterSection title="Work">
         {filterOptions.works.map((w) => (
           <label key={w} className="flex items-center gap-2 cursor-pointer text-sm font-body text-foreground">
-            <input type="checkbox" checked={filters.works.includes(w)} onChange={() => toggleArrayFilter("works", w)} className="accent-accent" />
+            <input
+              type="radio"
+              name="workFilter"
+              checked={(filters.works || []).includes(w)}
+              onChange={() => handleSingleSelect("works", w)}
+              className="accent-accent"
+            />
             {w}
           </label>
         ))}
+        {(filters.works || []).length > 0 && (
+          <button onClick={() => onFilterChange({ ...filters, works: [] })} className="text-xs text-accent hover:underline mt-1">
+            Clear Work
+          </button>
+        )}
       </FilterSection>
 
+      {/* ── PRINTS & PATTERNS → single-select radio ── */}
       <FilterSection title="Prints & Patterns" defaultOpen={false}>
         {filterOptions.patterns.map((p) => (
           <label key={p} className="flex items-center gap-2 cursor-pointer text-sm font-body text-foreground">
-            <input type="checkbox" checked={filters.patterns.includes(p)} onChange={() => toggleArrayFilter("patterns", p)} className="accent-accent" />
+            <input
+              type="radio"
+              name="patternFilter"
+              checked={(filters.patterns || []).includes(p)}
+              onChange={() => handleSingleSelect("patterns", p)}
+              className="accent-accent"
+            />
             {p}
           </label>
         ))}
+        {(filters.patterns || []).length > 0 && (
+          <button onClick={() => onFilterChange({ ...filters, patterns: [] })} className="text-xs text-accent hover:underline mt-1">
+            Clear Pattern
+          </button>
+        )}
       </FilterSection>
+
     </div>
   );
 
   return (
     <>
-      {/* Desktop sidebar */}
       <aside className="hidden lg:block w-64 flex-shrink-0 pr-8">
         <h2 className="font-display text-lg font-semibold mb-4 text-foreground">Filters</h2>
         {content}
       </aside>
-
-      {/* Mobile drawer */}
       {isOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div className="absolute inset-0 bg-foreground/40" onClick={onClose} />
