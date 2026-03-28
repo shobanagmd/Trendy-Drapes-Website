@@ -11,7 +11,7 @@ const navLinks = [
   { label: "Lehengas", to: "/collections?category=Lehengas" },
   { label: "Indo-Western", to: "/collections?category=Indo-Western" },
   { label: "Jewellery", to: "/collections?category=Jewellery" },
-  { label: "Sale", to: "/collections?sort=discount" },
+  { label: "Sale", to: "/sale" },
 ];
 
 const Navbar = () => {

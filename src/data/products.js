@@ -977,6 +977,8 @@ export const products = [
     readyToShip: true,
     description: "A stunning layered gold mathapatti bridal hair accessory with Kundan stones and pearl drops.",
   },
+  // ===== sale =====
+  
 ];
 
 export const categories = [

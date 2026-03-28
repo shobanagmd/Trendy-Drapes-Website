@@ -22,6 +22,7 @@ import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Privacy from "./pages/Privacy";
 import NotFound from "./pages/NotFound";
+import Sales from "./pages/sales";
 
 // Admin pages & layout
 import { DashboardLayout } from "@/admin/components/DashboardLayout";
@@ -62,6 +63,7 @@ const App = () => (
               <Route path="/about" element={<ProtectedRoute><About /></ProtectedRoute>} />
               <Route path="/contact" element={<ProtectedRoute><Contact /></ProtectedRoute>} />
               <Route path="/privacy" element={<ProtectedRoute><Privacy /></ProtectedRoute>} />
+              <Route path="/sale" element={<ProtectedRoute><Sales /></ProtectedRoute>} />
 
               {/* Admin login - public route */}
               <Route path="/admin-login" element={<AdminLogin />} />
