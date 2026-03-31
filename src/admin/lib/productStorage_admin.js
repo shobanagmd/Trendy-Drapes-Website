@@ -20,7 +20,6 @@ export const getAllProducts = () => {
 
 export const saveProduct = (formData) => {
   const products = getAllProducts();
-  // Preserve the uploaded image: use formData.image, or first in images array, or fallback icon
   const imageValue = formData.image
     || (Array.isArray(formData.images) && formData.images.length > 0 ? formData.images[0] : null)
     || "📦";

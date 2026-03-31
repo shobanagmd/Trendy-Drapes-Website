@@ -197,6 +197,7 @@ const Index = () => {
             onFilterChange={(f) => { setFilters(f); setCurrentPage(1); }}
             isOpen={filterOpen}
             onClose={() => setFilterOpen(false)}
+            activeCategory={activeCategory}
           />
 
           <div className="flex-1">

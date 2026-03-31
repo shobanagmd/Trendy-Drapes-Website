@@ -1,7 +1,10 @@
+import { useState, useEffect } from "react";
 import { StatCard } from "@/components/StatCard";
+import { Input } from "@/components/ui/input";
+import { getAllProducts } from "@/lib/productStorage";
 import {
   DollarSign, TrendingUp, ShoppingCart, Package,
-  ArrowUpRight, Clock, CheckCircle2, Store
+  ArrowUpRight, Clock, CheckCircle2, Store, Search, Calendar
 } from "lucide-react";
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
@@ -71,6 +74,34 @@ const recentActivity = [
 ];
 
 export default function DashboardHome() {
+  const [products, setProducts] = useState([]);
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("All");
+  const [status, setStatus] = useState("All");
+  const [maxStock, setMaxStock] = useState("");
+  const [dateCreated, setDateCreated] = useState("");
+
+  useEffect(() => {
+    setProducts(getAllProducts());
+  }, []);
+
+  const getStatus = (product) => {
+    if (product.stock === 0) return "Out of Stock";
+    if (product.stock < 50) return "Low Stock";
+    return "Active";
+  };
+
+  const filteredProducts = products.map(p => ({ ...p, status: getStatus(p) })).filter(p => {
+    const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
+    const matchesCategory = category === "All" || p.category === category;
+    const matchesStatus = status === "All" || p.status === status;
+    const matchesStock = maxStock === "" || p.stock <= parseInt(maxStock);
+    const matchesDate = dateCreated === "" || p.dateCreated === dateCreated;
+    return matchesSearch && matchesCategory && matchesStatus && matchesStock && matchesDate;
+  });
+
+  const uniqueCategories = ["All", ...new Set(products.map(p => p.category))];
+
   return (
     <div className="space-y-5">
       <div className="page-header">
@@ -84,6 +115,74 @@ export default function DashboardHome() {
         <StatCard title="Total Orders" value="37,540" change="+12.4% this month" changeType="positive" icon={ShoppingCart} />
         <StatCard title="Active Products" value="12,840" change="+248 new this week" changeType="positive" icon={Package} />
         <StatCard title="Avg. Rating" value="4.7 ★" change="Based on 8,420 reviews" changeType="positive" icon={TrendingUp} />
+      </div>
+
+      {/* Product Search & Database Section */}
+      <div className="rounded-xl border bg-card shadow-sm p-5 overflow-hidden">
+        <h3 className="chart-title mb-4">Product Database Search</h3>
+        <div className="flex flex-wrap items-center gap-3 mb-5">
+          <div className="relative flex-1 min-w-[200px] max-w-sm">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input placeholder="Search by name..." className="pl-9 bg-secondary border-none" value={search} onChange={(e) => setSearch(e.target.value)} />
+          </div>
+          
+          <select 
+            className="h-10 rounded-md border-0 bg-secondary px-3 py-1 text-sm shadow-sm font-medium text-card-foreground outline-none ring-1 ring-border/50 focus:ring-2 focus:ring-primary"
+            value={category} onChange={(e) => setCategory(e.target.value)}
+          >
+            {uniqueCategories.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+
+          <select 
+            className="h-10 rounded-md border-0 bg-secondary px-3 py-1 text-sm shadow-sm font-medium text-card-foreground outline-none ring-1 ring-border/50 focus:ring-2 focus:ring-primary"
+            value={status} onChange={(e) => setStatus(e.target.value)}
+          >
+            <option value="All">All Status</option>
+            <option value="Active">Active</option>
+            <option value="Low Stock">Low Stock</option>
+            <option value="Out of Stock">Out of Stock</option>
+          </select>
+
+          <div className="flex items-center gap-2">
+            <Input type="number" placeholder="Max Stock" className="w-28 bg-secondary border-none" value={maxStock} onChange={(e) => setMaxStock(e.target.value)} />
+          </div>
+
+          <div className="flex items-center gap-2 relative">
+            <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input type="date" className="h-10 w-44 pl-9 bg-secondary border-none text-sm cursor-pointer" value={dateCreated} onChange={(e) => setDateCreated(e.target.value)} />
+          </div>
+        </div>
+
+        <div className="overflow-x-auto border-t pt-4">
+          <table className="data-table mt-0">
+            <thead>
+              <tr><th>Product</th><th>Category</th><th>Price</th><th>Stock</th><th>Date Added</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+              {filteredProducts.length > 0 ? filteredProducts.map((p) => (
+                <tr key={p.id}>
+                  <td>
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-9 h-11 rounded border border-border bg-secondary flex items-center justify-center text-base">{p.image}</span>
+                      <span className="font-medium text-card-foreground text-sm">{p.name}</span>
+                    </div>
+                  </td>
+                  <td className="text-muted-foreground">{p.category}</td>
+                  <td className="font-medium text-card-foreground">{p.price}</td>
+                  <td className="text-card-foreground font-semibold">{p.stock.toLocaleString()}</td>
+                  <td className="text-muted-foreground text-xs font-medium">{p.dateCreated || "N/A"}</td>
+                  <td>
+                    <span className={p.status === "Active" ? "badge-success" : p.status === "Low Stock" ? "badge-warning" : "badge-danger"}>
+                      {p.status}
+                    </span>
+                  </td>
+                </tr>
+              )) : (
+                <tr><td colSpan="6" className="text-center py-6 text-muted-foreground">No products match your current filters.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Revenue & Category Chart */}

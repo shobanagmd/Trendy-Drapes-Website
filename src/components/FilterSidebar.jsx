@@ -21,10 +21,19 @@ const FilterSection = ({ title, children, defaultOpen = true }) => {
   );
 };
 
-const FilterSidebar = ({ filters, onFilterChange, isOpen, onClose }) => {
+const FilterSidebar = ({ filters, onFilterChange, isOpen, onClose, activeCategory }) => {
 
-  // ── Single-select helper for the NEW single-select filters ──────────
-  // Clicking the already-selected value deselects it; clicking a new one replaces.
+  // ── Resolve category-specific options, fall back to flat lists ────────
+  const catOpts = (filterOptions.byCategory && filterOptions.byCategory[activeCategory])
+    ? filterOptions.byCategory[activeCategory]
+    : null;
+
+  const subCategoryList = catOpts ? catOpts.subCategories : filterOptions.subCategories;
+  const fabricList      = catOpts ? catOpts.fabrics        : filterOptions.fabrics;
+  const workList        = catOpts ? catOpts.works          : filterOptions.works;
+  const patternList     = catOpts ? catOpts.patterns       : filterOptions.patterns;
+
+  // ── Single-select helper ─────────────────────────────────────────────
   const handleSingleSelect = (key, value) => {
     const current = filters[key] || [];
     const next = current.includes(value) ? [] : [value];
@@ -90,7 +99,7 @@ const FilterSidebar = ({ filters, onFilterChange, isOpen, onClose }) => {
 
       {/* ── SUBCATEGORY → single-select radio ── */}
       <FilterSection title="Sub Category">
-        {filterOptions.subCategories.map((s) => (
+        {subCategoryList.map((s) => (
           <label key={s} className="flex items-center gap-2 cursor-pointer text-sm font-body text-foreground">
             <input
               type="radio"
@@ -133,7 +142,7 @@ const FilterSidebar = ({ filters, onFilterChange, isOpen, onClose }) => {
 
       {/* ── FABRIC → single-select radio ── */}
       <FilterSection title="Fabric">
-        {filterOptions.fabrics.map((f) => (
+        {fabricList.map((f) => (
           <label key={f} className="flex items-center gap-2 cursor-pointer text-sm font-body text-foreground">
             <input
               type="radio"
@@ -154,7 +163,7 @@ const FilterSidebar = ({ filters, onFilterChange, isOpen, onClose }) => {
 
       {/* ── WORK → single-select radio ── */}
       <FilterSection title="Work">
-        {filterOptions.works.map((w) => (
+        {workList.map((w) => (
           <label key={w} className="flex items-center gap-2 cursor-pointer text-sm font-body text-foreground">
             <input
               type="radio"
@@ -175,7 +184,7 @@ const FilterSidebar = ({ filters, onFilterChange, isOpen, onClose }) => {
 
       {/* ── PRINTS & PATTERNS → single-select radio ── */}
       <FilterSection title="Prints & Patterns" defaultOpen={false}>
-        {filterOptions.patterns.map((p) => (
+        {patternList.map((p) => (
           <label key={p} className="flex items-center gap-2 cursor-pointer text-sm font-body text-foreground">
             <input
               type="radio"

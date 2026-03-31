@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { StatCard } from "@/components/StatCard";
-import { DollarSign, TrendingUp, CreditCard, Receipt, Search } from "lucide-react";
+import { DollarSign, TrendingUp, CreditCard, Receipt, Search, Plus, Minus, Edit2, AlertTriangle, Package } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { getAllProducts, updateProduct } from "@/lib/productStorage";
 import {
   AreaChart, Area, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell
@@ -47,6 +49,36 @@ const txnType = { "Seller Payout": "badge-info", Refund: "badge-danger", Commiss
 
 export default function FinancePage() {
   const [search, setSearch] = useState("");
+  const [products, setProducts] = useState([]);
+
+  useEffect(() => {
+    setProducts(getAllProducts());
+  }, []);
+
+  const handleUpdateStock = (id, newStock) => {
+    if (newStock < 0) newStock = 0;
+    updateProduct(id, { stock: newStock });
+    setProducts(getAllProducts());
+  };
+
+  const handleEditStock = (id, currentStock) => {
+    const val = prompt("Enter new stock count:", currentStock);
+    if (val !== null && !isNaN(parseInt(val))) {
+      handleUpdateStock(id, parseInt(val));
+    }
+  };
+
+  const getStockStatus = (stock) => {
+    if (stock === 0) return { label: "Out of Stock", class: "badge-danger" };
+    if (stock < 50) return { label: "Low Stock", class: "badge-warning" };
+    return { label: "In Stock", class: "badge-success" };
+  };
+
+  const parsePrice = (priceStr) => parseFloat(priceStr.replace(/[^0-9.]/g, ""));
+
+  const totalInventoryValue = products.reduce((acc, p) => acc + (parsePrice(p.price) * p.stock), 0);
+  const lowStockCount = products.filter(p => p.stock < 50).length;
+
   const filteredTransactions = transactions.filter(
     (t) =>
       t.id.toLowerCase().includes(search.toLowerCase()) ||
@@ -152,6 +184,63 @@ export default function FinancePage() {
               <p className="text-[11px] text-muted-foreground">{item.sub}</p>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Stock Management */}
+      <div className="rounded-xl border bg-card shadow-sm overflow-hidden border-orange-200/50 dark:border-orange-900/50">
+        <div className="border-b px-5 py-4 flex flex-wrap items-center justify-between gap-4 bg-orange-50/50 dark:bg-orange-950/20">
+          <div>
+            <h3 className="chart-title flex items-center gap-2">
+              <Package className="h-5 w-5 text-orange-500" />
+              Stock Management
+            </h3>
+            <p className="chart-subtitle mt-1">Manage inventory to forecast costs and prevent stockouts.</p>
+          </div>
+          <div className="flex gap-4 text-right">
+            <div>
+              <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Total Inventory Value</p>
+              <p className="text-lg font-bold text-card-foreground">${totalInventoryValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+            </div>
+            {lowStockCount > 0 && (
+              <div className="bg-destructive/10 text-destructive px-3 py-1.5 rounded-lg flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4" />
+                <div className="text-left">
+                  <p className="text-sm font-bold">{lowStockCount} Items Low</p>
+                  <p className="text-[10px] leading-tight opacity-80">Requires restock</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="data-table">
+            <thead>
+              <tr><th>Product</th><th>Status</th><th>Price</th><th>Stock Qty</th><th>Total Value</th><th>Actions</th></tr>
+            </thead>
+            <tbody>
+              {products.map(p => {
+                const status = getStockStatus(p.stock);
+                const value = parsePrice(p.price) * p.stock;
+                return (
+                  <tr key={p.id}>
+                    <td className="font-medium text-card-foreground">{p.name}</td>
+                    <td><span className={status.class}>{status.label}</span></td>
+                    <td className="text-muted-foreground">{p.price}</td>
+                    <td className="font-semibold text-card-foreground">{p.stock}</td>
+                    <td className="font-medium text-card-foreground">${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    <td>
+                      <div className="flex items-center gap-1">
+                        <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => handleUpdateStock(p.id, p.stock - 1)}><Minus className="h-3 w-3" /></Button>
+                        <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => handleUpdateStock(p.id, p.stock + 1)}><Plus className="h-3 w-3" /></Button>
+                        <Button variant="outline" size="icon" className="h-7 w-7 ml-1" onClick={() => handleEditStock(p.id, p.stock)}><Edit2 className="h-3 w-3" /></Button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </div>
 

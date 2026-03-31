@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Search, Heart, ShoppingBag, User, Menu, X } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
@@ -14,6 +14,47 @@ const navLinks = [
   { label: "Sale", to: "/sale" },
 ];
 
+// Rotating announcement messages
+const announcements = [
+  "🔥 Festive Sale Live — Up to 50% OFF on All Categories",
+  "🚚 Free Shipping on Orders Above ₹4,999 | Use Code: TRENDY20",
+  "💍 Bridal Collection — Flat 34% OFF + Extra 20% with BRIDE20",
+  "✨ New Arrivals Every Week — Shop the Latest Ethnic Wear",
+  "🏷️ Limited Time: Extra 20% OFF Sitewide | Code: TRENDY20",
+];
+
+const AnnouncementBar = () => {
+  const [idx, setIdx] = useState(0);
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Fade out, swap, fade in
+      setVisible(false);
+      setTimeout(() => {
+        setIdx((prev) => (prev + 1) % announcements.length);
+        setVisible(true);
+      }, 400);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="bg-primary text-primary-foreground text-center py-2 text-xs tracking-widest font-body uppercase overflow-hidden">
+      <span
+        style={{
+          display: "inline-block",
+          transition: "opacity 0.4s ease, transform 0.4s ease",
+          opacity: visible ? 1 : 0,
+          transform: visible ? "translateY(0)" : "translateY(-6px)",
+        }}
+      >
+        {announcements[idx]}
+      </span>
+    </div>
+  );
+};
+
 const Navbar = () => {
   const [searchOpen, setSearchOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -22,9 +63,8 @@ const Navbar = () => {
   return (
     <>
       <header className="sticky top-0 z-50 bg-card border-b border-border">
-        <div className="bg-primary text-primary-foreground text-center py-2 text-xs tracking-widest font-body uppercase">
-          Free Shipping on Orders Above ₹4,999 | Use Code: TRENDY20
-        </div>
+        {/* ── Rotating announcement bar ── */}
+        <AnnouncementBar />
 
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16 lg:h-20">

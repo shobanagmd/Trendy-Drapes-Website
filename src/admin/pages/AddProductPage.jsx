@@ -6,28 +6,48 @@ import { ArrowLeft, Upload, X, Plus } from "lucide-react";
 import { useLocalProducts } from "@/hooks/useLocalProducts";
 import { useToast } from "@/hooks/use-toast";
 
-const categoryOptions = ["Sarees", "Lehengas", "Indo-Western", "Bridal", "Jewellery", "Kids", "Men", "Women"];
+const categoryOptions = ["Sarees", "Bridal", "Lehengas", "Indo-Western", "Jewellery"];
+
 const subcategoryOptions = {
-  Sarees: ["Designer", "Banarasi", "Kanjivaram", "Chiffon", "Georgette", "Cotton", "Silk", "Tussar", "Patola", "Chanderi"],
-  Lehengas: ["Bridal", "Party Wear", "Festive", "Designer"],
-  "Indo-Western": ["Gowns", "Fusion", "Contemporary"],
-  Bridal: ["Wedding", "Reception", "Engagement"],
-  Jewellery: ["Necklace", "Earrings", "Bangles", "Maang Tikka"],
-  Kids: ["Girls", "Boys"],
-  Men: ["Kurta", "Sherwani"],
-  Women: ["Salwar Suit", "Kurti", "Dress"],
+  Sarees:         ["Banarasi", "Kanjivaram", "Chiffon", "Silk", "Cotton"],
+  Bridal:         ["Wedding Lehenga", "Bridal Saree", "Reception Gown", "Engagement Outfit", "Bridal Dupatta"],
+  Lehengas:       ["Bridal Lehenga", "Party Wear", "Festive", "A-Line", "Flared"],
+  "Indo-Western": ["Gown", "Fusion Saree", "Crop Top Lehenga", "Dhoti Set", "Cape Dress"],
+  Jewellery:      ["Necklace Set", "Earrings", "Bangles", "Maang Tikka", "Anklet"],
 };
-const fabricOptions = ["Silk", "Cotton", "Georgette", "Chiffon", "Net", "Velvet", "Satin", "Linen", "Organza", "Crepe", "Banarasi Silk", "Art Silk"];
+
+const fabricOptions = {
+  Sarees:         ["Silk", "Cotton", "Georgette", "Chiffon", "Banarasi Silk"],
+  Bridal:         ["Velvet", "Silk", "Net", "Satin", "Organza"],
+  Lehengas:       ["Net", "Silk", "Velvet", "Georgette", "Art Silk"],
+  "Indo-Western": ["Crepe", "Georgette", "Satin", "Cotton Blend", "Lycra"],
+  Jewellery:      [],
+};
+
+const workOptions = {
+  Sarees:         ["Zari", "Embroidery", "Sequins", "Printed", "Hand Painted"],
+  Bridal:         ["Zardozi", "Stone Work", "Kundan", "Resham", "Gota Patti"],
+  Lehengas:       ["Mirror Work", "Thread Work", "Sequins", "Embroidery", "Zari"],
+  "Indo-Western": ["Embroidery", "Printed", "Sequins", "Lace", "Applique"],
+  Jewellery:      ["Kundan", "Meenakari", "Temple", "Polki", "Antique"],
+};
+
+const patternOptions = {
+  Sarees:         ["Woven", "Floral", "Paisley", "Geometric", "Traditional"],
+  Bridal:         ["Embellished", "Floral", "Traditional", "Paisley", "Abstract"],
+  Lehengas:       ["Floral", "Geometric", "Paisley", "Solid", "Abstract"],
+  "Indo-Western": ["Solid", "Printed", "Abstract", "Geometric", "Striped"],
+  Jewellery:      ["Traditional", "Contemporary", "Floral", "Geometric", "Temple"],
+};
+
 const colorOptions = ["Red", "Blue", "Green", "Yellow", "Pink", "Purple", "Orange", "Black", "White", "Gold", "Silver", "Maroon", "Navy", "Teal", "Peach", "Beige"];
-const workOptions = ["Embroidery", "Zari", "Sequins", "Mirror Work", "Thread Work", "Stone Work", "Printed", "Hand Painted", "Resham", "Kutch Work", "Gota Patti", "None"];
-const patternOptions = ["Embellished", "Solid", "Printed", "Woven", "Floral", "Geometric", "Paisley", "Striped", "Checkered", "Abstract", "Traditional"];
-const sizeOptions = ["Free Size", "XS", "S", "M", "L", "XL", "XXL", "Custom"];
+const sizeOptions   = ["Free Size", "XS", "S", "M", "L", "XL", "XXL", "Custom"];
 
 const selectClass = "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 export default function AddProductPage() {
   const navigate = useNavigate();
-  const { addProduct } = useLocalProducts();
+  const { addProduct, clearAllProducts } = useLocalProducts();
   const { toast } = useToast();
 
   const [form, setForm] = useState({
@@ -35,12 +55,18 @@ export default function AddProductPage() {
     description: "", fabric: "", color: "", work: "", pattern: "",
     sizes: ["Free Size"], images: [], readyToShip: false, featured: false,
   });
-  const [errors, setErrors] = useState({});
+  const [errors,     setErrors]     = useState({});
+  const [submitting, setSubmitting] = useState(false);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setForm((p) => ({ ...p, [name]: type === "checkbox" ? checked : value }));
     if (errors[name]) setErrors((p) => ({ ...p, [name]: "" }));
+  };
+
+  const handleCategoryChange = (e) => {
+    handleChange(e);
+    setForm((p) => ({ ...p, subCategory: "", fabric: "", work: "", pattern: "" }));
   };
 
   const toggleSize = (size) => {
@@ -69,55 +95,92 @@ export default function AddProductPage() {
 
   const validate = () => {
     const errs = {};
-    if (!form.name.trim()) errs.name = "Required";
-    if (!form.subCategory) errs.subCategory = "Required";
-    if (!form.price || Number(form.price) <= 0) errs.price = "Required";
-    if (!form.mrp || Number(form.mrp) <= 0) errs.mrp = "Required";
-    if (Number(form.price) > Number(form.mrp)) errs.price = "Price must be ≤ MRP";
-    if (!form.stock && form.stock !== "0") errs.stock = "Required";
-    if (form.images.length === 0) errs.images = "At least one image required";
-    if (!form.description.trim()) errs.description = "Required";
-    if (!form.fabric) errs.fabric = "Required";
-    if (!form.color) errs.color = "Required";
+    if (!form.name.trim())                               errs.name        = "Required";
+    if (!form.subCategory)                               errs.subCategory = "Required";
+    if (!form.price || Number(form.price) <= 0)          errs.price       = "Required";
+    if (!form.mrp   || Number(form.mrp)   <= 0)          errs.mrp         = "Required";
+    if (Number(form.price) > Number(form.mrp))           errs.price       = "Price must be ≤ MRP";
+    if (!form.stock && form.stock !== "0")               errs.stock       = "Required";
+    if (form.images.length === 0)                        errs.images      = "At least one image required";
+    if (!form.description.trim())                        errs.description = "Required";
+    if (form.category !== "Jewellery" && !form.fabric)   errs.fabric      = "Required";
+    if (!form.color)                                     errs.color       = "Required";
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validate()) return;
-    const price = Number(form.price);
-    const mrp = Number(form.mrp);
+    if (!validate() || submitting) return;
+
+    setSubmitting(true);
+
+    const price    = Number(form.price);
+    const mrp      = Number(form.mrp);
     const discount = mrp > 0 ? Math.round(((mrp - price) / mrp) * 100) : 0;
+
     const product = {
-      id: `local-${Date.now()}`,
-      name: form.name.trim(),
-      category: form.category,
-      subCategory: form.subCategory,
-      price, originalPrice: mrp, mrp,
-      stock: Number(form.stock),
-      description: form.description.trim(),
-      image: form.images[0],
-      images: form.images,
+      id:            `local-${Date.now()}`,
+      name:          form.name.trim(),
+      category:      form.category,
+      subCategory:   form.subCategory,
+      price,
+      originalPrice: mrp,
+      mrp,
+      stock:         Number(form.stock),
+      description:   form.description.trim(),
+      image:         form.images[0],
+      images:        form.images,
       discount,
-      fabric: form.fabric,
-      color: form.color,
-      work: form.work || "None",
-      pattern: form.pattern || "Solid",
-      sizes: form.sizes,
-      readyToShip: form.readyToShip,
-      featured: form.featured,
-      isNew: true,
-      isExclusive: false,
-      tags: [],
+      fabric:        form.fabric,
+      color:         form.color,
+      work:          form.work    || "None",
+      pattern:       form.pattern || "Solid",
+      sizes:         form.sizes,
+      readyToShip:   form.readyToShip,
+      featured:      form.featured,
+      isNew:         true,
+      isExclusive:   false,
+      tags:          [],
     };
-    const ok = addProduct(product);
-    if (ok) {
-      toast({ title: "Product added!", description: `${product.name} has been added successfully.` });
+
+    // addProduct is now async (compresses images before storing)
+    const result = await addProduct(product);
+
+    setSubmitting(false);
+
+    if (result.ok) {
+      toast({ title: "✅ Product added!", description: `${product.name} has been added successfully.` });
       navigate("/admin/products");
-    } else {
-      toast({ title: "Duplicate", description: "Product already exists.", variant: "destructive" });
+      return;
     }
+
+    if (result.reason === "duplicate") {
+      toast({ title: "Duplicate product", description: "A product with this ID already exists.", variant: "destructive" });
+      return;
+    }
+
+    if (result.reason === "quota") {
+      // Storage is full — offer to clear old products
+      const confirmClear = window.confirm(
+        `⚠️ Storage is full (${result.usedKB} KB used).\n\n` +
+        `This happens because product images are stored in the browser.\n\n` +
+        `Click OK to clear previously added products and try again, or Cancel to keep them.`
+      );
+      if (confirmClear) {
+        clearAllProducts();
+        toast({ title: "Storage cleared", description: "Previous products removed. Please add the product again." });
+      } else {
+        toast({
+          title: "Storage full",
+          description: "Try using smaller images (under 500KB each) or clear browser storage.",
+          variant: "destructive",
+        });
+      }
+      return;
+    }
+
+    toast({ title: "Error", description: "Could not save product. Please try again.", variant: "destructive" });
   };
 
   const currentSubcategories = subcategoryOptions[form.category] || [];
@@ -146,7 +209,7 @@ export default function AddProductPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-foreground mb-1.5">Category *</label>
-              <select name="category" value={form.category} onChange={(e) => { handleChange(e); setForm((p) => ({ ...p, subCategory: "" })); }} className={selectClass}>
+              <select name="category" value={form.category} onChange={handleCategoryChange} className={selectClass}>
                 {categoryOptions.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
@@ -161,8 +224,11 @@ export default function AddProductPage() {
           </div>
           <div>
             <label className="block text-sm font-medium text-foreground mb-1.5">Description *</label>
-            <textarea name="description" value={form.description} onChange={handleChange} rows={3} placeholder="Describe the product..."
-              className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+            <textarea
+              name="description" value={form.description} onChange={handleChange} rows={3}
+              placeholder="Describe the product..."
+              className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
             {errors.description && <p className="text-xs text-destructive mt-1">{errors.description}</p>}
           </div>
         </div>
@@ -201,14 +267,16 @@ export default function AddProductPage() {
         <div className="border border-border rounded-lg p-5 space-y-4 bg-card">
           <h3 className="text-base font-semibold text-foreground">Product Details</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">Fabric *</label>
-              <select name="fabric" value={form.fabric} onChange={handleChange} className={selectClass}>
-                <option value="">Select fabric</option>
-                {fabricOptions.map((f) => <option key={f} value={f}>{f}</option>)}
-              </select>
-              {errors.fabric && <p className="text-xs text-destructive mt-1">{errors.fabric}</p>}
-            </div>
+            {form.category !== "Jewellery" && (
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">Fabric *</label>
+                <select name="fabric" value={form.fabric} onChange={handleChange} className={selectClass}>
+                  <option value="">Select fabric</option>
+                  {(fabricOptions[form.category] || []).map((f) => <option key={f} value={f}>{f}</option>)}
+                </select>
+                {errors.fabric && <p className="text-xs text-destructive mt-1">{errors.fabric}</p>}
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-foreground mb-1.5">Color *</label>
               <select name="color" value={form.color} onChange={handleChange} className={selectClass}>
@@ -221,14 +289,14 @@ export default function AddProductPage() {
               <label className="block text-sm font-medium text-foreground mb-1.5">Work</label>
               <select name="work" value={form.work} onChange={handleChange} className={selectClass}>
                 <option value="">Select work type</option>
-                {workOptions.map((w) => <option key={w} value={w}>{w}</option>)}
+                {(workOptions[form.category] || []).map((w) => <option key={w} value={w}>{w}</option>)}
               </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-foreground mb-1.5">Pattern</label>
               <select name="pattern" value={form.pattern} onChange={handleChange} className={selectClass}>
                 <option value="">Select pattern</option>
-                {patternOptions.map((p) => <option key={p} value={p}>{p}</option>)}
+                {(patternOptions[form.category] || []).map((p) => <option key={p} value={p}>{p}</option>)}
               </select>
             </div>
           </div>
@@ -238,7 +306,9 @@ export default function AddProductPage() {
               {sizeOptions.map((size) => (
                 <button key={size} type="button" onClick={() => toggleSize(size)}
                   className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                    form.sizes.includes(size) ? "bg-primary text-primary-foreground border-primary" : "bg-background text-foreground border-border hover:bg-secondary"
+                    form.sizes.includes(size)
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-background text-foreground border-border hover:bg-secondary"
                   }`}>
                   {size}
                 </button>
@@ -249,7 +319,10 @@ export default function AddProductPage() {
 
         {/* Images */}
         <div className="border border-border rounded-lg p-5 space-y-4 bg-card">
-          <h3 className="text-base font-semibold text-foreground">Product Images *</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-semibold text-foreground">Product Images *</h3>
+            <p className="text-xs text-muted-foreground">Images are auto-compressed before saving</p>
+          </div>
           <div className="flex flex-wrap gap-3">
             {form.images.map((img, i) => (
               <div key={i} className="relative w-24 h-28 rounded-md overflow-hidden border border-border bg-secondary group">
@@ -286,8 +359,11 @@ export default function AddProductPage() {
           </div>
         </div>
 
-        <Button type="submit" className="w-full">
-          <Plus className="w-4 h-4 mr-2" /> Add Product
+        <Button type="submit" className="w-full" disabled={submitting}>
+          {submitting
+            ? <><span className="animate-spin mr-2 inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full" />Saving & compressing images...</>
+            : <><Plus className="w-4 h-4 mr-2" />Add Product</>
+          }
         </Button>
       </form>
     </div>

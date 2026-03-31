@@ -20,8 +20,6 @@ const statusStyle = {
 
 export default function ProductsPage() {
   const navigate = useNavigate();
-  const [search, setSearch] = useState("");
-  const [filterStatus, setFilterStatus] = useState("All");
   const [products, setProducts] = useState([]);
 
   useEffect(() => {
@@ -36,14 +34,8 @@ export default function ProductsPage() {
     return "Active";
   };
 
-  // Apply filtering
-  const filtered = products
-    .map(p => ({ ...p, status: getStatus(p) }))
-    .filter((p) => {
-      const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
-      const matchesFilter = filterStatus === "All" || p.status === filterStatus;
-      return matchesSearch && matchesFilter;
-    });
+  // Format products
+  const filtered = products.map(p => ({ ...p, status: getStatus(p) }));
 
   const handleDelete = (id) => {
     if (window.confirm("Are you sure you want to delete this product?")) {
@@ -101,15 +93,7 @@ export default function ProductsPage() {
         </ResponsiveContainer>
       </div>
 
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="Search products..." className="pl-9 bg-card" value={search} onChange={(e) => setSearch(e.target.value)} />
-        </div>
-        {["All", "Active", "Low Stock", "Out of Stock"].map((f) => (
-          <Button key={f} onClick={() => setFilterStatus(f)} variant={f === filterStatus ? "default" : "outline"} size="sm" className="text-xs">{f}</Button>
-        ))}
-      </div>
+
 
       <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
@@ -122,7 +106,19 @@ export default function ProductsPage() {
                 <tr key={p.id}>
                   <td>
                     <div className="flex items-center gap-2.5">
-                      <span className="text-lg">{p.image}</span>
+                      {/* Show actual image if it looks like a URL or base64, else show emoji/icon */}
+                      {p.image && (p.image.startsWith("http") || p.image.startsWith("data:") || p.image.startsWith("/")) ? (
+                        <img
+                          src={p.image}
+                          alt={p.name}
+                          className="w-10 h-12 object-cover rounded border border-border flex-shrink-0"
+                          onError={(e) => { e.currentTarget.style.display = "none"; e.currentTarget.nextSibling.style.display = "flex"; }}
+                        />
+                      ) : (
+                        <span className="w-10 h-12 rounded border border-border bg-secondary flex items-center justify-center text-lg flex-shrink-0">
+                          {p.image || <Package className="h-5 w-5 text-muted-foreground" />}
+                        </span>
+                      )}
                       <span className="font-medium text-card-foreground text-sm">{p.name}</span>
                     </div>
                   </td>
