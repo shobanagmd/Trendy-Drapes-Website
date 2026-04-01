@@ -5,11 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Search, RotateCcw, AlertTriangle, CheckCircle, XCircle, Banknote, ListCollapse } from "lucide-react";
 
 const returnsData = [
-  { id: "RET-2841", orderId: "ORD-78452", customer: "Sanjay Gupta", reason: "Damaged Package", amount: "$120.00", status: "Pending", date: "Mar 21, 2026" },
-  { id: "RET-2842", orderId: "ORD-78445", customer: "Neha Rao", reason: "Wrong Product Received", amount: "$89.99", status: "Approved", date: "Mar 20, 2026" },
-  { id: "RET-2843", orderId: "ORD-78410", customer: "Varun Desai", reason: "Size Mismatch", amount: "$45.50", status: "Refunded", date: "Mar 19, 2026" },
-  { id: "RET-2844", orderId: "ORD-78401", customer: "Pooja Hegde", reason: "Changed Mind", amount: "$210.00", status: "Rejected", date: "Mar 18, 2026" },
-  { id: "RET-2845", orderId: "ORD-78399", customer: "Rohan Kumar", reason: "Item Not Working", amount: "$350.00", status: "Pending", date: "Mar 17, 2026" },
+  { id: "RET-2841", orderId: "ORD-78452", customer: "Sanjay Gupta", reason: "Damaged Package", amount: "₹9,600", status: "Pending", date: "Mar 21, 2026" },
+  { id: "RET-2842", orderId: "ORD-78445", customer: "Neha Rao", reason: "Wrong Product Received", amount: "₹7,199", status: "Approved", date: "Mar 20, 2026" },
+  { id: "RET-2843", orderId: "ORD-78410", customer: "Varun Desai", reason: "Size Mismatch", amount: "₹3,640", status: "Refunded", date: "Mar 19, 2026" },
+  { id: "RET-2844", orderId: "ORD-78401", customer: "Pooja Hegde", reason: "Changed Mind", amount: "₹16,800", status: "Rejected", date: "Mar 18, 2026" },
+  { id: "RET-2845", orderId: "ORD-78399", customer: "Rohan Kumar", reason: "Item Not Working", amount: "₹28,000", status: "Pending", date: "Mar 17, 2026" },
 ];
 
 const statusStyles = {
@@ -43,7 +43,7 @@ export default function ReturnsPage() {
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <StatCard title="Pending Requests" value="24" change="Needs action" changeType="negative" icon={AlertTriangle} />
         <StatCard title="Approved Returns" value="142" change="Awaiting item return" changeType="neutral" icon={RotateCcw} />
-        <StatCard title="Total Refunded" value="$12.4k" change="This month" changeType="neutral" icon={Banknote} />
+        <StatCard title="Total Refunded" value="₹9.92L" change="This month" changeType="neutral" icon={Banknote} />
         <StatCard title="Rejected" value="18" change="Invalid claims" changeType="positive" icon={XCircle} />
       </div>
 

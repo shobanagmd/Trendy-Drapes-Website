@@ -5,14 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Search, CreditCard, AlertCircle, CheckCircle2, RefreshCcw, Landmark, Clock } from "lucide-react";
 
 const paymentsData = [
-  { id: "PAY-10041", orderId: "ORD-78451", customer: "Rahul Sharma", amount: "$248.97", method: "UPI", status: "Success", date: "Mar 21, 2026 14:30" },
-  { id: "PAY-10042", orderId: "ORD-78450", customer: "Priya Patel", amount: "$89.99", method: "Card", status: "Success", date: "Mar 21, 2026 13:15" },
-  { id: "PAY-10043", orderId: "ORD-78449", customer: "Amit Kumar", amount: "$412.50", method: "Cash on Delivery", status: "Pending", date: "Mar 20, 2026 18:22" },
-  { id: "PAY-10044", orderId: "ORD-78448", customer: "Sneha Reddy", amount: "$156.00", method: "UPI", status: "Success", date: "Mar 20, 2026 11:40" },
-  { id: "PAY-10045", orderId: "ORD-78447", customer: "Vikram Singh", amount: "$320.00", method: "Card", status: "Failed", date: "Mar 19, 2026 09:25" },
-  { id: "PAY-10046", orderId: "ORD-78446", customer: "Meera Joshi", amount: "$178.00", method: "Wallet", status: "Refunded", date: "Mar 19, 2026 16:50" },
-  { id: "PAY-10047", orderId: "ORD-78445", customer: "Karan Mehta", amount: "$99.99", method: "UPI", status: "Success", date: "Mar 18, 2026 10:10" },
-  { id: "PAY-10048", orderId: "ORD-78444", customer: "Anita Desai", amount: "$267.00", method: "Card", status: "Failed", date: "Mar 18, 2026 14:30" },
+  { id: "PAY-10041", orderId: "ORD-78451", customer: "Rahul Sharma", amount: "₹19,918", method: "UPI", status: "Success", date: "Mar 21, 2026 14:30" },
+  { id: "PAY-10042", orderId: "ORD-78450", customer: "Priya Patel", amount: "₹7,199", method: "Card", status: "Success", date: "Mar 21, 2026 13:15" },
+  { id: "PAY-10043", orderId: "ORD-78449", customer: "Amit Kumar", amount: "₹33,000", method: "Cash on Delivery", status: "Pending", date: "Mar 20, 2026 18:22" },
+  { id: "PAY-10044", orderId: "ORD-78448", customer: "Sneha Reddy", amount: "₹12,480", method: "UPI", status: "Success", date: "Mar 20, 2026 11:40" },
+  { id: "PAY-10045", orderId: "ORD-78447", customer: "Vikram Singh", amount: "₹25,600", method: "Card", status: "Failed", date: "Mar 19, 2026 09:25" },
+  { id: "PAY-10046", orderId: "ORD-78446", customer: "Meera Joshi", amount: "₹14,240", method: "Wallet", status: "Refunded", date: "Mar 19, 2026 16:50" },
+  { id: "PAY-10047", orderId: "ORD-78445", customer: "Karan Mehta", amount: "₹7,999", method: "UPI", status: "Success", date: "Mar 18, 2026 10:10" },
+  { id: "PAY-10048", orderId: "ORD-78444", customer: "Anita Desai", amount: "₹21,360", method: "Card", status: "Failed", date: "Mar 18, 2026 14:30" },
 ];
 
 const statusStyles = {
@@ -43,7 +43,7 @@ export default function PaymentsPage() {
       </div>
 
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-        <StatCard title="Total Collected" value="$84.5k" change="+12% this month" changeType="positive" icon={Landmark} />
+        <StatCard title="Total Collected" value="₹67.6L" change="+12% this month" changeType="positive" icon={Landmark} />
         <StatCard title="Successful Txns" value="1,842" change="92% success rate" changeType="positive" icon={CheckCircle2} />
         <StatCard title="Failed Txns" value="48" change="Needs attention" changeType="negative" icon={AlertCircle} />
         <StatCard title="Pending Refunds" value="12" change="Awaiting processing" changeType="neutral" icon={RefreshCcw} />
