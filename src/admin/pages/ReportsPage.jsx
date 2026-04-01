@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { StatCard } from "@/components/StatCard";
-import { FileBarChart, TrendingUp, ShoppingCart, Users, Search } from "lucide-react";
+import { StatCard } from "@/admin/components/StatCard";
+import { FileBarChart, TrendingUp, ShoppingCart, Users, Search, Download, FileText } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   LineChart, Line, BarChart, Bar, AreaChart, Area,
@@ -46,9 +47,22 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-5">
-      <div className="page-header">
-        <h1 className="page-title">Sales Reports</h1>
-        <p className="page-subtitle">Comprehensive sales analytics, seller comparisons, and product performance</p>
+      <div className="page-header flex flex-col md:flex-row md:items-start justify-between gap-4">
+        <div>
+          <h1 className="page-title">Sales Reports</h1>
+          <p className="page-subtitle">Comprehensive sales analytics, seller comparisons, and product performance</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" size="sm" className="gap-1.5 h-8 text-xs font-semibold whitespace-nowrap" onClick={() => alert("Downloading Daily Report (CSV)...")}>
+            <Download className="h-3.5 w-3.5" /> Daily Report
+          </Button>
+          <Button variant="outline" size="sm" className="gap-1.5 h-8 text-xs font-semibold whitespace-nowrap" onClick={() => alert("Downloading Weekly Report (CSV)...")}>
+            <Download className="h-3.5 w-3.5" /> Weekly Report
+          </Button>
+          <Button size="sm" className="gap-1.5 h-8 text-xs font-semibold whitespace-nowrap" onClick={() => alert("Generating GST Invoice Report (PDF)...")}>
+            <FileText className="h-3.5 w-3.5" /> GST Invoice Report
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">

@@ -4,10 +4,10 @@ import { ArrowUp, ArrowDown } from "lucide-react";
 export function StatCard({ title, value, change, changeType = "neutral", icon: Icon, iconColor }) {
   return (
     <div className="stat-card">
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{title}</p>
-        <div className={cn("rounded-lg p-2", iconColor || "bg-primary/10")}>
-          <Icon className={cn("h-4 w-4", iconColor ? "text-card-foreground" : "text-primary")} />
+      <div className="flex items-start justify-between mb-3">
+        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground flex-1 pr-2">{title}</p>
+        <div className={cn("rounded-lg flex shrink-0 items-center justify-center h-8 w-8", iconColor || "bg-primary/10")}>
+          <Icon className={cn("h-4 w-4 shrink-0", iconColor ? "text-card-foreground" : "text-primary")} />
         </div>
       </div>
       <p className="text-xl font-bold text-card-foreground">{value}</p>

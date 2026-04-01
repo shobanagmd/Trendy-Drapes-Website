@@ -51,7 +51,7 @@ export default function AddProductPage() {
   const { toast } = useToast();
 
   const [form, setForm] = useState({
-    name: "", category: "Sarees", subCategory: "", price: "", mrp: "", stock: "",
+    name: "", sku: "", category: "Sarees", subCategory: "", price: "", mrp: "", stock: "",
     description: "", fabric: "", color: "", work: "", pattern: "",
     sizes: ["Free Size"], images: [], readyToShip: false, featured: false,
   });
@@ -96,6 +96,7 @@ export default function AddProductPage() {
   const validate = () => {
     const errs = {};
     if (!form.name.trim())                               errs.name        = "Required";
+    if (!form.sku.trim())                                errs.sku         = "Required";
     if (!form.subCategory)                               errs.subCategory = "Required";
     if (!form.price || Number(form.price) <= 0)          errs.price       = "Required";
     if (!form.mrp   || Number(form.mrp)   <= 0)          errs.mrp         = "Required";
@@ -121,6 +122,7 @@ export default function AddProductPage() {
 
     const product = {
       id:            `local-${Date.now()}`,
+      sku:           form.sku.trim() || `SKU-${Date.now()}`,
       name:          form.name.trim(),
       category:      form.category,
       subCategory:   form.subCategory,
@@ -208,11 +210,18 @@ export default function AddProductPage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">SKU *</label>
+              <Input name="sku" value={form.sku} onChange={handleChange} placeholder="e.g. TD-SAREE-001" />
+              {errors.sku && <p className="text-xs text-destructive mt-1">{errors.sku}</p>}
+            </div>
+            <div>
               <label className="block text-sm font-medium text-foreground mb-1.5">Category *</label>
               <select name="category" value={form.category} onChange={handleCategoryChange} className={selectClass}>
                 {categoryOptions.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-foreground mb-1.5">Subcategory *</label>
               <select name="subCategory" value={form.subCategory} onChange={handleChange} className={selectClass}>

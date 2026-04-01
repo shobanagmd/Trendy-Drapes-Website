@@ -36,6 +36,8 @@ import ProfilePage from "@/admin/pages/ProfilePage";
 import SupportPage from "@/admin/pages/SupportPage";
 import SettingsPage from "@/admin/pages/SettingsPage";
 import VendorPage from "@/admin/pages/VendorPage";
+import PaymentsPage from "@/admin/pages/PaymentsPage";
+import ReturnsPage from "@/admin/pages/ReturnsPage";
 
 const queryClient = new QueryClient();
 
@@ -74,6 +76,8 @@ const App = () => (
                 <Route path="products" element={<ProductsPage />} />
                 <Route path="products/add" element={<AddProductPage />} />
                 <Route path="orders" element={<OrdersPage />} />
+                <Route path="payments" element={<PaymentsPage />} />
+                <Route path="returns" element={<ReturnsPage />} />
                 <Route path="finance" element={<FinancePage />} />
                 <Route path="reports" element={<ReportsPage />} />
                 <Route path="profile" element={<ProfilePage />} />

@@ -99,7 +99,17 @@ export default function ProductsPage() {
         <div className="overflow-x-auto">
           <table className="data-table">
             <thead>
-              <tr><th>Product</th><th>Category</th><th>Seller</th><th>Price</th><th>Stock</th><th>Sold</th><th>Rating</th><th>Status</th><th>Actions</th></tr>
+              <tr>
+                <th className="w-[30%] text-left">Product</th>
+                <th className="w-[12%] text-left">Category</th>
+                <th className="w-[12%] text-left">Seller</th>
+                <th className="w-[10%] text-right">Price</th>
+                <th className="w-[8%] text-right">Stock</th>
+                <th className="w-[8%] text-right">Sold</th>
+                <th className="w-[8%] text-center">Rating</th>
+                <th className="w-[10%] text-center">Status</th>
+                <th className="w-[12%] text-right">Actions</th>
+              </tr>
             </thead>
             <tbody>
               {filtered.map((p) => (
@@ -111,39 +121,42 @@ export default function ProductsPage() {
                         <img
                           src={p.image}
                           alt={p.name}
-                          className="w-10 h-12 object-cover rounded border border-border flex-shrink-0"
+                          className="w-12 h-12 object-cover rounded-md border border-border flex-shrink-0"
                           onError={(e) => { e.currentTarget.style.display = "none"; e.currentTarget.nextSibling.style.display = "flex"; }}
                         />
                       ) : (
-                        <span className="w-10 h-12 rounded border border-border bg-secondary flex items-center justify-center text-lg flex-shrink-0">
+                        <span className="w-12 h-12 rounded-md border border-border bg-secondary flex items-center justify-center text-lg flex-shrink-0">
                           {p.image || <Package className="h-5 w-5 text-muted-foreground" />}
                         </span>
                       )}
-                      <span className="font-medium text-card-foreground text-sm">{p.name}</span>
+                      <div className="flex flex-col min-w-0">
+                        <span className="font-medium text-card-foreground text-sm truncate" title={p.name}>{p.name}</span>
+                        <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-tight">{p.sku || `NO-SKU-${p.id}`}</span>
+                      </div>
                     </div>
                   </td>
-                  <td className="text-muted-foreground">{p.category}</td>
-                  <td className="text-card-foreground">{p.seller}</td>
-                  <td>
-                    <div>
-                      <span className="font-medium text-card-foreground">{p.price}</span>
-                      <span className="text-[10px] text-muted-foreground line-through ml-1">{p.mrp}</span>
+                  <td className="text-muted-foreground text-left">{p.category}</td>
+                  <td className="text-card-foreground text-left">{p.seller}</td>
+                  <td className="text-right">
+                    <div className="flex flex-col items-end">
+                      <span className="font-medium text-card-foreground">₹{Number(p.price || 0).toLocaleString("en-IN")}</span>
+                      <span className="text-[10px] text-muted-foreground line-through">₹{Number(p.mrp || 0).toLocaleString("en-IN")}</span>
                     </div>
                   </td>
-                  <td className="text-card-foreground">{p.stock.toLocaleString()}</td>
-                  <td className="text-card-foreground">{(p.price ?? 0).toLocaleString()}</td>
+                  <td className="text-card-foreground text-right">{p.stock.toLocaleString()}</td>
+                  <td className="text-card-foreground text-right">₹{Number(p.price ?? 0).toLocaleString("en-IN")}</td>
                   <td>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center justify-center gap-1">
                       <Star className="h-3 w-3 text-warning fill-warning" />
                       <span className="text-xs font-medium text-card-foreground">{p.rating}</span>
                     </div>
                   </td>
-                  <td><span className={statusStyle[p.status]}>{p.status}</span></td>
+                  <td className="text-center"><span className={statusStyle[p.status]}>{p.status}</span></td>
                   <td>
-                    <div className="flex items-center gap-1">
-                      <button onClick={() => handleView(p)} className="rounded p-1.5 hover:bg-secondary transition-colors" title="View"><Eye className="h-3.5 w-3.5 text-muted-foreground" /></button>
-                      <button onClick={() => handleEdit(p)} className="rounded p-1.5 hover:bg-secondary transition-colors" title="Edit"><Edit className="h-3.5 w-3.5 text-muted-foreground" /></button>
-                      <button onClick={() => handleDelete(p.id)} className="rounded p-1.5 hover:bg-secondary transition-colors" title="Delete"><Trash2 className="h-3.5 w-3.5 text-destructive" /></button>
+                    <div className="flex items-center justify-end gap-1">
+                      <button onClick={() => handleView(p)} className="rounded p-1.5 hover:bg-secondary transition-colors" title="View"><Eye className="h-4 w-4 text-muted-foreground" /></button>
+                      <button onClick={() => handleEdit(p)} className="rounded p-1.5 hover:bg-secondary transition-colors" title="Edit"><Edit className="h-4 w-4 text-muted-foreground" /></button>
+                      <button onClick={() => handleDelete(p.id)} className="rounded p-1.5 hover:bg-secondary transition-colors" title="Delete"><Trash2 className="h-4 w-4 text-destructive" /></button>
                     </div>
                   </td>
                 </tr>

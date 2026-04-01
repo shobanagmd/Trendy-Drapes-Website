@@ -1,10 +1,10 @@
 import { useNavigate } from "react-router-dom";
-import { StatCard } from "@/components/StatCard";
+import { StatCard } from "@/admin/components/StatCard";
 import { Button } from "@/components/ui/button";
 import {
   Store, ShieldCheck, Clock, Star, Mail, Phone, MapPin,
   FileText, CheckCircle2, XCircle, AlertTriangle, Ban, Eye,
-  UserCheck, Package, ShoppingCart, DollarSign
+  UserCheck, Package, ShoppingCart, IndianRupee
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
@@ -19,7 +19,7 @@ const vendor = {
   bank: "Verified",
   products: 480,
   orders: 12400,
-  revenue: "$1.24M",
+  revenue: "₹1.24Cr",
   rating: 4.7,
   onTime: 96,
   joinDate: "Jan 2024",
@@ -59,7 +59,7 @@ export default function VendorPage() {
         <StatCard title="Total Products" value={String(vendor.products)} change="Active listings" changeType="positive" icon={Package} />
         <StatCard title="Total Orders" value={vendor.orders.toLocaleString()} change="+340 this month" changeType="positive" icon={ShoppingCart} />
         <StatCard title="On-Time Delivery" value={`${vendor.onTime}%`} change="Last 30 days" changeType="positive" icon={Clock} />
-        <StatCard title="Revenue" value={vendor.revenue} change="+12% vs last month" changeType="positive" icon={DollarSign} />
+        <StatCard title="Revenue" value={vendor.revenue} change="+12% vs last month" changeType="positive" icon={IndianRupee} />
       </div>
 
       {/* Vendor Profile Card */}

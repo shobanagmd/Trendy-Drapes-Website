@@ -1,7 +1,7 @@
 import { NavLink, useLocation } from "react-router-dom";
 import {
-  LayoutDashboard, Package, ShoppingCart, DollarSign, FileBarChart,
-  UserCircle, Settings, HeadphonesIcon, ChevronLeft, ChevronRight, Store, X,
+  LayoutDashboard, Package, ShoppingCart, IndianRupee, FileBarChart,
+  UserCircle, Settings, HeadphonesIcon, ChevronLeft, ChevronRight, Store, X, CreditCard, RotateCcw
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -9,10 +9,12 @@ const mainNav = [
   { title: "Dashboard", path: "/admin", icon: LayoutDashboard },
   { title: "Products", path: "/admin/products", icon: Package },
   { title: "Orders", path: "/admin/orders", icon: ShoppingCart },
+  { title: "Payments", path: "/admin/payments", icon: CreditCard },
+  { title: "Returns", path: "/admin/returns", icon: RotateCcw },
 ];
 
 const analyticsNav = [
-  { title: "Finance", path: "/admin/finance", icon: DollarSign },
+  { title: "Finance", path: "/admin/finance", icon: IndianRupee },
   { title: "Sales Reports", path: "/admin/reports", icon: FileBarChart },
 ];
 

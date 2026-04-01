@@ -1,27 +1,11 @@
 import { useState } from "react";
-import { Bell, Search, X, Mail, Phone, LogOut, Menu, Home } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Bell, X, Mail, Phone, LogOut, Menu, Home } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
-const pageTitles = {
-  "/admin": "Dashboard",
-  "/admin/products": "Products",
-  "/admin/products/add": "Add Product",
-  "/admin/orders": "Orders",
-  "/admin/finance": "Finance",
-  "/admin/reports": "Sales Reports",
-  "/admin/profile": "Profile",
-  "/admin/support": "Support",
-  "/admin/settings": "Settings",
-  "/admin/vendor": "My Store",
-};
-
 export function DashboardHeader({ onMenuClick }) {
-  const location = useLocation();
   const navigate = useNavigate();
   const { adminLogout } = useAuth();
-  const title = pageTitles[location.pathname] || "Dashboard";
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
 
@@ -51,17 +35,12 @@ export function DashboardHeader({ onMenuClick }) {
         <button onClick={onMenuClick} className="lg:hidden p-2 hover:bg-secondary rounded-lg transition-colors">
           <Menu className="h-5 w-5 text-muted-foreground" />
         </button>
-        <h2 className="text-sm font-semibold text-foreground">{title}</h2>
       </div>
 
       <div className="flex items-center gap-2 relative">
         <button onClick={() => navigate("/")} className="p-2 hover:bg-secondary rounded-lg transition-colors" title="Back to Store">
           <Home className="h-4 w-4 text-muted-foreground" />
         </button>
-        <div className="relative hidden sm:block">
-          <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="Search..." className="h-8 w-52 pl-8 text-xs bg-secondary border-none" />
-        </div>
         <button onClick={() => { setShowNotifications(!showNotifications); setShowProfile(false); }} className="relative p-2 hover:bg-secondary rounded-lg transition-colors">
           <Bell className="h-4 w-4 text-muted-foreground" />
           <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-primary" />

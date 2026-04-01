@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { StatCard } from "@/components/StatCard";
+import { StatCard } from "@/admin/components/StatCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, ShoppingCart, Truck, CheckCircle2, XCircle, RotateCcw, Eye, X } from "lucide-react";
+import { Search, ShoppingCart, Truck, CheckCircle2, XCircle, RotateCcw, Eye, X, MapPin, Download, Package, ExternalLink, Calendar, Map, Check, ChevronDown } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 
 const orderTrend = [
@@ -156,53 +156,146 @@ export default function OrdersPage() {
       {/* Order Details Modal */}
       {selectedOrder && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-card rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 flex items-center justify-between p-6 border-b bg-card">
-              <h2 className="text-lg font-semibold">Order Details</h2>
-              <button onClick={() => setSelectedOrder(null)} className="p-1 hover:bg-secondary rounded">
-                <X className="h-5 w-5" />
-              </button>
+          <div className="bg-card rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-xl">
+            {/* Modal Header */}
+            <div className="sticky top-0 flex items-center justify-between p-5 border-b bg-card z-10">
+              <div>
+                <h2 className="text-lg font-bold text-card-foreground flex items-center gap-2">
+                  Order Details <span className="text-muted-foreground font-normal">#{selectedOrder.id}</span>
+                </h2>
+                <p className="text-xs text-muted-foreground mt-0.5"><Calendar className="inline h-3 w-3 mr-1" /> Placed on {selectedOrder.date}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button size="sm" variant="outline" className="gap-1.5 h-8 text-xs font-semibold" onClick={() => alert("Downloading Invoice PDF...")}>
+                  <Download className="h-3.5 w-3.5" /> Invoice
+                </Button>
+                <button onClick={() => setSelectedOrder(null)} className="p-1.5 hover:bg-secondary rounded-md transition-colors text-muted-foreground">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
             </div>
-            <div className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-xs text-muted-foreground font-medium">Order ID</p>
-                  <p className="text-sm font-semibold text-card-foreground">{selectedOrder.id}</p>
+
+            <div className="p-5 grid gap-6">
+              {/* Top Details Row */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="rounded-lg border bg-secondary/30 p-4 shadow-sm">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-1.5">
+                     Payment Info
+                  </h3>
+                  <div className="space-y-2">
+                    <p className="text-sm flex justify-between"><span className="text-muted-foreground">Method:</span> <span className={`font-semibold ${paymentStyle[selectedOrder.payment]}`}>{selectedOrder.payment}</span></p>
+                    <p className="text-sm flex justify-between"><span className="text-muted-foreground">Total Amount:</span> <span className="font-bold text-card-foreground">{selectedOrder.total}</span></p>
+                    <p className="text-sm flex justify-between"><span className="text-muted-foreground">Status:</span> <span className="text-green-600 font-medium">Paid</span></p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xs text-muted-foreground font-medium">Status</p>
-                  <p className={`text-sm font-semibold ${statusStyle[selectedOrder.status]}`}>{selectedOrder.status}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground font-medium">Order Date</p>
-                  <p className="text-sm font-semibold text-card-foreground">{selectedOrder.date}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground font-medium">Total Amount</p>
-                  <p className="text-sm font-semibold text-card-foreground">{selectedOrder.total}</p>
+
+                <div className="rounded-lg border bg-secondary/30 p-4 shadow-sm md:col-span-2">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-1.5">
+                     Customer & Shipping
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <p className="font-medium text-card-foreground text-sm">{selectedOrder.customer}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{selectedOrder.email}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">+91 98765 43210</p>
+                    </div>
+                    <div>
+                      <div className="flex items-start gap-1.5">
+                        <MapPin className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-xs text-card-foreground leading-relaxed">
+                            Plot No. 42, Silicon Valley Layout,<br/>
+                            Madhapur, Hyderabad, TS 500081
+                          </p>
+                          <a href="https://maps.google.com/?q=Madhapur,Hyderabad" target="_blank" rel="noreferrer" className="text-[11px] text-primary hover:underline mt-1 inline-flex items-center gap-1">
+                            View on Google Maps <ExternalLink className="h-2.5 w-2.5" />
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div className="border-t pt-4">
-                <h3 className="font-semibold text-card-foreground mb-3">Customer Information</h3>
-                <div className="space-y-2">
-                  <p className="text-sm"><span className="text-muted-foreground">Name:</span> <span className="font-medium text-card-foreground">{selectedOrder.customer}</span></p>
-                  <p className="text-sm"><span className="text-muted-foreground">Email:</span> <span className="font-medium text-card-foreground">{selectedOrder.email}</span></p>
+              {/* Status & Tracking */}
+              <div className="rounded-lg border p-4 shadow-sm">
+                <div className="flex flex-col md:flex-row gap-6 md:items-end justify-between">
+                  <div>
+                    <h3 className="text-sm font-semibold text-card-foreground mb-2">Update Order Status</h3>
+                    <div className="flex gap-2 relative">
+                      <select 
+                        className="h-9 rounded-md border border-input bg-background px-3 text-sm font-medium w-40"
+                        defaultValue={selectedOrder.status}
+                      >
+                        <option value="Processing">Processing</option>
+                        <option value="Shipped">Shipped</option>
+                        <option value="Delivered">Delivered</option>
+                        <option value="Cancelled">Cancelled</option>
+                        <option value="Returned">Returned</option>
+                      </select>
+                      <Button size="sm" className="h-9">Update</Button>
+                    </div>
+                  </div>
+                  <div className="flex-1 bg-secondary/50 rounded-md p-3 max-w-sm">
+                    <h4 className="text-xs font-semibold text-muted-foreground mb-2">Shipment Tracking</h4>
+                    <div className="space-y-2">
+                       <select className="flex h-8 w-full rounded-md border border-border bg-background px-3 py-1 text-xs shadow-sm outline-none">
+                         <option>BlueDart Express</option>
+                         <option>Ekart Logistics</option>
+                         <option>Delhivery</option>
+                       </select>
+                       <div className="flex gap-2">
+                         <Input placeholder="Tracking ID" className="h-8 text-xs bg-background" defaultValue="BD789456123IN" />
+                         <Button size="sm" variant="secondary" className="h-8 text-xs font-semibold whitespace-nowrap">Save</Button>
+                       </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div className="border-t pt-4">
-                <h3 className="font-semibold text-card-foreground mb-3">Order Information</h3>
-                <div className="space-y-2">
-                  <p className="text-sm"><span className="text-muted-foreground">Seller:</span> <span className="font-medium text-card-foreground">{selectedOrder.seller}</span></p>
-                  <p className="text-sm"><span className="text-muted-foreground">Items:</span> <span className="font-medium text-card-foreground">{selectedOrder.items}</span></p>
-                  <p className="text-sm"><span className="text-muted-foreground">Payment Method:</span> <span className={`text-sm font-semibold ${paymentStyle[selectedOrder.payment]}`}>{selectedOrder.payment}</span></p>
+              {/* Order Items */}
+              <div>
+                <h3 className="text-sm font-semibold text-card-foreground mb-3 flex items-center gap-1.5 border-b pb-2">
+                  <Package className="h-4 w-4" /> Ordered Items ({selectedOrder.items})
+                </h3>
+                <div className="overflow-x-auto rounded-lg border">
+                  <table className="w-full text-sm">
+                    <thead className="bg-secondary/50 border-b">
+                      <tr>
+                        <th className="px-3 py-2 text-left font-medium text-muted-foreground text-xs">Product</th>
+                        <th className="px-3 py-2 text-right font-medium text-muted-foreground text-xs">Qty</th>
+                        <th className="px-3 py-2 text-right font-medium text-muted-foreground text-xs">Price</th>
+                        <th className="px-3 py-2 text-right font-medium text-muted-foreground text-xs">Discount</th>
+                        <th className="px-3 py-2 text-right font-medium text-muted-foreground text-xs">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {Array.from({ length: selectedOrder.items }).map((_, i) => {
+                        const basePrice = (parseFloat(selectedOrder.total.replace(/[^0-9.]/g, '')) / selectedOrder.items).toFixed(2);
+                        return (
+                        <tr key={i} className="hover:bg-secondary/20">
+                          <td className="px-3 py-3">
+                            <div className="flex items-center gap-3">
+                              <div className="h-10 w-10 rounded border bg-secondary flex items-center justify-center shrink-0">
+                                <Package className="h-5 w-5 text-muted-foreground" />
+                              </div>
+                              <div>
+                                <p className="font-medium text-card-foreground line-clamp-1">Product Item {i + 1}</p>
+                                <p className="text-xs text-muted-foreground">{selectedOrder.seller}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-3 py-3 text-right text-card-foreground font-medium">1</td>
+                          <td className="px-3 py-3 text-right text-muted-foreground">${basePrice}</td>
+                          <td className="px-3 py-3 text-right text-success text-xs">10%</td>
+                          <td className="px-3 py-3 text-right font-medium text-card-foreground">${(basePrice * 0.9).toFixed(2)}</td>
+                        </tr>
+                      )})}
+                    </tbody>
+                  </table>
                 </div>
               </div>
 
-              <div className="border-t pt-4">
-                <Button onClick={() => setSelectedOrder(null)} className="w-full">Close</Button>
-              </div>
             </div>
           </div>
         </div>
