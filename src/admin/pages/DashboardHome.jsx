@@ -274,8 +274,9 @@ export default function DashboardHome() {
             <thead>
               <tr className="bg-secondary/30">
                 <th className="w-16 pl-5 text-left"></th>
-                <th className="text-center min-w-[200px]">Product Name</th>
+                <th className="text-center min-w-[180px]">Product Name</th>
                 <th className="text-left px-4">Category</th>
+                <th className="text-left px-4">Seller</th>
                 <th className="text-right px-4">Price</th>
                 <th className="text-right px-4">Stock</th>
                 <th className="text-left pl-6 pr-4">Status</th>
@@ -300,6 +301,9 @@ export default function DashboardHome() {
                       ? <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-secondary/80 text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">{p.category}</span>
                       : <span className="text-muted-foreground text-xs">—</span>
                     }
+                  </td>
+                  <td className="px-4 py-3 text-left">
+                    <span className="text-card-foreground font-medium text-xs">{p.seller || "—"}</span>
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex flex-col items-end">
@@ -343,10 +347,10 @@ export default function DashboardHome() {
 
       {/* Primary KPI Cards */}
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-        <StatCard title="Total Revenue"    value="₹39.2L"  change="+18.2% vs last quarter"       changeType="positive" icon={IndianRupee} />
-        <StatCard title="Total Orders"     value="37,540"  change="+12.4% this month"             changeType="positive" icon={ShoppingCart} />
-        <StatCard title="Total Products"   value="12,840"  change="+248 new this week"             changeType="positive" icon={Package} />
-        <StatCard title="Total Customers"  value="28,400"  change="+3,200 new this quarter"       changeType="positive" icon={Users} />
+        <StatCard title="Total Revenue"    value="₹39.2L"  todayValue="₹45,200" change="+18.2% vs last quarter"       changeType="positive" icon={IndianRupee} />
+        <StatCard title="Total Orders"     value="37,540"  todayValue="128"      change="+12.4% this month"             changeType="positive" icon={ShoppingCart} />
+        <StatCard title="Total Products"   value="12,840"  todayValue="8"        change="+248 new this week"             changeType="positive" icon={Package} />
+        <StatCard title="Total Customers"  value="28,400"  todayValue="42"       change="+3,200 new this quarter"       changeType="positive" icon={Users} />
       </div>
 
       {/* Secondary KPI Cards */}

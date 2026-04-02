@@ -26,6 +26,7 @@ export const saveProduct = (formData) => {
     id: String(nextId),
     sold: 0,
     rating: 0,
+    seller: formData.seller || "Trendy Drapes",
     image: formData.image || formData.images?.[0] || "📦",
     stock: parseInt(formData.stock) || 0,
     dateCreated: new Date().toISOString().split('T')[0],

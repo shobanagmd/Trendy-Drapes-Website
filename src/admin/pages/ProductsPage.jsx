@@ -55,9 +55,10 @@ export default function ProductsPage() {
       const newPrice = prompt("Edit price:", product.price);
       const newStock = prompt("Edit stock:", product.stock.toString());
       if (newPrice && newStock) {
+        const newSeller = prompt("Edit seller name:", product.seller || "");
         const updatedProducts = products.map(p =>
           p.id === product.id
-            ? { ...p, name: newName, price: newPrice, stock: parseInt(newStock) }
+            ? { ...p, name: newName, price: newPrice, stock: parseInt(newStock), seller: newSeller || p.seller }
             : p
         );
         setProducts(updatedProducts);
@@ -100,9 +101,9 @@ export default function ProductsPage() {
           <table className="data-table">
             <thead>
               <tr>
-                <th className="w-[30%] text-left">Product</th>
+                <th className="w-[25%] text-left">Product</th>
                 <th className="w-[12%] text-left">Category</th>
-                <th className="w-[12%] text-left">Seller</th>
+                <th className="w-[15%] text-left">Seller</th>
                 <th className="w-[10%] text-right">Price</th>
                 <th className="w-[8%] text-right">Stock</th>
                 <th className="w-[8%] text-right">Sold</th>

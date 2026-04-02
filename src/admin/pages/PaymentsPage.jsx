@@ -43,10 +43,10 @@ export default function PaymentsPage() {
       </div>
 
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-        <StatCard title="Total Collected" value="₹67.6L" change="+12% this month" changeType="positive" icon={Landmark} />
-        <StatCard title="Successful Txns" value="1,842" change="92% success rate" changeType="positive" icon={CheckCircle2} />
-        <StatCard title="Failed Txns" value="48" change="Needs attention" changeType="negative" icon={AlertCircle} />
-        <StatCard title="Pending Refunds" value="12" change="Awaiting processing" changeType="neutral" icon={RefreshCcw} />
+        <StatCard title="Total Collected" value="₹67.6L" todayValue="₹1,24,500" change="+12% this month" changeType="positive" icon={Landmark} />
+        <StatCard title="Successful Txns" value="1,842"  todayValue="48"        change="92% success rate" changeType="positive" icon={CheckCircle2} />
+        <StatCard title="Failed Txns"     value="48"     todayValue="3"         change="Needs attention"  changeType="negative" icon={AlertCircle} />
+        <StatCard title="Pending Refunds" value="12"     todayValue="2"         change="Awaiting processing" changeType="neutral" icon={RefreshCcw} />
       </div>
 
       {/* Payment List Section */}

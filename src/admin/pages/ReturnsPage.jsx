@@ -41,10 +41,10 @@ export default function ReturnsPage() {
       </div>
 
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-        <StatCard title="Pending Requests" value="24" change="Needs action" changeType="negative" icon={AlertTriangle} />
-        <StatCard title="Approved Returns" value="142" change="Awaiting item return" changeType="neutral" icon={RotateCcw} />
-        <StatCard title="Total Refunded" value="₹9.92L" change="This month" changeType="neutral" icon={Banknote} />
-        <StatCard title="Rejected" value="18" change="Invalid claims" changeType="positive" icon={XCircle} />
+        <StatCard title="Pending Requests" value="24"     todayValue="5"   change="Needs action"          changeType="negative" icon={AlertTriangle} />
+        <StatCard title="Approved Returns" value="142"    todayValue="12"  change="Awaiting item return"  changeType="neutral"  icon={RotateCcw} />
+        <StatCard title="Total Refunded"   value="₹9.92L" todayValue="₹18,400" change="This month"           changeType="neutral"  icon={Banknote} />
+        <StatCard title="Rejected"         value="18"     todayValue="1"   change="Invalid claims"        changeType="positive" icon={XCircle} />
       </div>
 
       <div className="rounded-xl border bg-card shadow-sm overflow-hidden">

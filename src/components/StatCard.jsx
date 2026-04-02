@@ -36,7 +36,7 @@ export function StatCard({ title, value, todayValue, change, changeType = "neutr
             {change}
           </p>
         </div>
-      )}
+      )}8
     </div>
   );
 }

@@ -375,11 +375,20 @@ const ProductDetail = () => {
             <p className="font-body text-sm text-muted-foreground leading-relaxed">{product.description}</p>
 
             {/* Details grid */}
-            <div className="grid grid-cols-2 gap-3 py-4 border-y border-border">
-              {product.fabric  && <div><span className="text-xs text-muted-foreground font-body">Fabric</span><p className="text-sm font-body font-medium text-foreground">{product.fabric}</p></div>}
-              {product.work    && <div><span className="text-xs text-muted-foreground font-body">Work</span><p className="text-sm font-body font-medium text-foreground">{product.work}</p></div>}
-              {product.color   && <div><span className="text-xs text-muted-foreground font-body">Color</span><p className="text-sm font-body font-medium text-foreground">{product.color}</p></div>}
-              {product.pattern && <div><span className="text-xs text-muted-foreground font-body">Pattern</span><p className="text-sm font-body font-medium text-foreground">{product.pattern}</p></div>}
+            <div className="grid grid-cols-2 gap-x-6 gap-y-4 py-6 border-y border-border/60">
+              {product.seller && (
+                <div className="col-span-2 pb-2 border-b border-border/30 mb-2">
+                  <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-1 block">Sold By</span>
+                  <p className="text-base font-display font-semibold text-accent flex items-center gap-2 italic">
+                    {product.seller}
+                    <span className="inline-flex h-1.5 w-1.5 rounded-full bg-success"></span>
+                  </p>
+                </div>
+              )}
+              {product.fabric  && <div className="space-y-0.5"><span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Fabric</span><p className="text-sm font-body font-medium text-foreground">{product.fabric}</p></div>}
+              {product.work    && <div className="space-y-0.5"><span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Work</span><p className="text-sm font-body font-medium text-foreground">{product.work}</p></div>}
+              {product.color   && <div className="space-y-0.5"><span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Color</span><p className="text-sm font-body font-medium text-foreground">{product.color}</p></div>}
+              {product.pattern && <div className="space-y-0.5"><span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Pattern</span><p className="text-sm font-body font-medium text-foreground">{product.pattern}</p></div>}
             </div>
 
             {/* Size selector */}

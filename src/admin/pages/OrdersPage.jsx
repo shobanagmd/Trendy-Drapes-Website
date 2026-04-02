@@ -276,11 +276,11 @@ export default function OrdersPage() {
 
       {/* Stat Cards */}
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-5">
-        <StatCard title="Total Orders" value="5,120"  change="+8.4% this month"   changeType="positive" icon={ShoppingCart} />
-        <StatCard title="Shipped"      value="1,128"  change="In transit"          changeType="neutral"  icon={Truck} />
-        <StatCard title="Delivered"    value="2,970"  change="58% delivery rate"   changeType="positive" icon={CheckCircle2} />
-        <StatCard title="Cancelled"    value="256"    change="5% cancel rate"      changeType="negative" icon={XCircle} />
-        <StatCard title="Returns"      value="154"    change="3% return rate"      changeType="negative" icon={RotateCcw} />
+        <StatCard title="Total Orders" value="5,120"  todayValue="128" change="+8.4% this month"   changeType="positive" icon={ShoppingCart} />
+        <StatCard title="Shipped"      value="1,128"  todayValue="42"  change="In transit"          changeType="neutral"  icon={Truck} />
+        <StatCard title="Delivered"    value="2,970"  todayValue="86"  change="58% delivery rate"   changeType="positive" icon={CheckCircle2} />
+        <StatCard title="Cancelled"    value="256"    todayValue="12"  change="5% cancel rate"      changeType="negative" icon={XCircle} />
+        <StatCard title="Returns"      value="154"    todayValue="8"   change="3% return rate"      changeType="negative" icon={RotateCcw} />
       </div>
 
       {/* Charts */}
