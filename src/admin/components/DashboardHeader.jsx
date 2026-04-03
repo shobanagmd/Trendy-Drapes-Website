@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Bell, X, Mail, Phone, LogOut, Menu, Home } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export function DashboardHeader({ onMenuClick }) {
   const navigate = useNavigate();
@@ -41,6 +42,7 @@ export function DashboardHeader({ onMenuClick }) {
         <button onClick={() => navigate("/")} className="p-2 hover:bg-secondary rounded-lg transition-colors" title="Back to Store">
           <Home className="h-4 w-4 text-muted-foreground" />
         </button>
+        <ThemeToggle />
         <button onClick={() => { setShowNotifications(!showNotifications); setShowProfile(false); }} className="relative p-2 hover:bg-secondary rounded-lg transition-colors">
           <Bell className="h-4 w-4 text-muted-foreground" />
           <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-primary" />

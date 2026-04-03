@@ -9,12 +9,16 @@ const DEFAULT_PRODUCTS = [
   { id: 8, sku: "TD-E-008", name: "Bluetooth Speaker Mini", category: "Electronics", seller: "TechZone", price: 2499, mrp: 3999, stock: 12, sold: 1340, rating: 4.2, status: "Low Stock", image: "🔊", description: "Portable bluetooth speaker with great sound", dateCreated: "2026-03-25" },
 ];
 
+const DEFAULT_SKUS = ["TD-E-001", "TD-F-002", "TD-E-003", "TD-B-004", "TD-S-005", "TD-H-006", "TD-F-007", "TD-E-008"];
+
 export const getAllProducts = () => {
   try {
     const stored = localStorage.getItem("products");
-    return stored ? JSON.parse(stored) : DEFAULT_PRODUCTS;
+    if (!stored) return [];
+    const products = JSON.parse(stored);
+    return products.filter((p) => !DEFAULT_SKUS.includes(p.sku));
   } catch {
-    return DEFAULT_PRODUCTS;
+    return [];
   }
 };
 
@@ -34,6 +38,7 @@ export const saveProduct = (formData) => {
   };
   products.push(newProduct);
   localStorage.setItem("products", JSON.stringify(products));
+  window.dispatchEvent(new Event("localProductsUpdated"));
   return newProduct;
 };
 
@@ -41,6 +46,7 @@ export const deleteProduct = (id) => {
   const products = getAllProducts();
   const filtered = products.filter((p) => p.id !== id);
   localStorage.setItem("products", JSON.stringify(filtered));
+  window.dispatchEvent(new Event("localProductsUpdated"));
 };
 
 export const updateProduct = (id, updatedData) => {
@@ -49,5 +55,6 @@ export const updateProduct = (id, updatedData) => {
   if (index !== -1) {
     products[index] = { ...products[index], ...updatedData };
     localStorage.setItem("products", JSON.stringify(products));
+    window.dispatchEvent(new Event("localProductsUpdated"));
   }
 };

@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 
-const STORAGE_KEY = "trendy_products";
-const DELETED_KEY = "trendy_deletedProducts";
+const STORAGE_KEY = "products";
 
 // ── Image compression helper ──────────────────────────────────────────────────
 // Resizes a base64 image to max 800×800 at 0.72 quality → reduces from ~2MB to ~80KB
@@ -68,26 +67,13 @@ export const getLocalProducts = () => {
   }
 };
 
-export const getDeletedProducts = () => {
-  try {
-    const data = localStorage.getItem(DELETED_KEY);
-    return data ? JSON.parse(data) : [];
-  } catch {
-    return [];
-  }
-};
-
 // ── Hook ──────────────────────────────────────────────────────────────────────
 export const useLocalProducts = () => {
-  const [localProducts,   setLocalProducts]   = useState(getLocalProducts);
-  const [deletedProducts, setDeletedProducts] = useState(getDeletedProducts);
+  const [localProducts, setLocalProducts] = useState(getLocalProducts);
 
   // Sync across tabs/components
   useEffect(() => {
-    const handler = () => {
-      setLocalProducts(getLocalProducts());
-      setDeletedProducts(getDeletedProducts());
-    };
+    const handler = () => setLocalProducts(getLocalProducts());
     window.addEventListener("storage", handler);
     window.addEventListener("localProductsUpdated", handler);
     return () => {
@@ -138,24 +124,20 @@ export const useLocalProducts = () => {
   // ── removeProduct ────────────────────────────────────────────────────────────
   const removeProduct = useCallback((id) => {
     const current = getLocalProducts();
-    const deleted = getDeletedProducts();
-    const updated        = current.filter((p) => p.id !== id);
-    const updatedDeleted = [...deleted, id];
+    const updated = current.filter((p) => p.id !== id);
+    
+    // As per requirement: If all products are deleted, ensure it becomes an empty array
     safeSetItem(STORAGE_KEY, JSON.stringify(updated));
-    safeSetItem(DELETED_KEY, JSON.stringify(updatedDeleted));
     setLocalProducts(updated);
-    setDeletedProducts(updatedDeleted);
     window.dispatchEvent(new Event("localProductsUpdated"));
   }, []);
 
   // ── clearAllProducts (utility for storage cleanup) ───────────────────────────
   const clearAllProducts = useCallback(() => {
-    localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem(DELETED_KEY);
+    safeSetItem(STORAGE_KEY, JSON.stringify([]));
     setLocalProducts([]);
-    setDeletedProducts([]);
     window.dispatchEvent(new Event("localProductsUpdated"));
   }, []);
 
-  return { localProducts, deletedProducts, addProduct, removeProduct, clearAllProducts };
-};
+  return { localProducts, addProduct, removeProduct, clearAllProducts };
+};

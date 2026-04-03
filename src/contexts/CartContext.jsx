@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
-import { getLocalProducts, getDeletedProducts } from "@/hooks/useLocalProducts";
+import emailjs from "emailjs-com";
+import { getLocalProducts } from "@/hooks/useLocalProducts";
 import { products } from "@/data/products";
 
 const CART_KEY = "cart";
@@ -8,7 +9,9 @@ const WISHLIST_KEY = "wishlist";
 const getStoredCart = () => {
   try {
     const data = localStorage.getItem(CART_KEY);
-    return data ? JSON.parse(data) : [];
+    if (!data) return [];
+    const parsed = JSON.parse(data);
+    return parsed.map(item => ({ ...item, addedAt: item.addedAt || Date.now() }));
   } catch {
     return [];
   }
@@ -46,13 +49,15 @@ export const CartProvider = ({ children }) => {
     };
     const handleProductDeleted = () => {
       const currentLocalProducts = getLocalProducts();
-      const currentDeleted = getDeletedProducts();
       const currentLocalIds = new Set(currentLocalProducts.map(p => p.id));
-      const deletedIds = new Set(currentDeleted);
+      const staticIds = new Set(products.map(p => p.id));
+      
+      const isProductAlive = (id) => staticIds.has(id) || currentLocalIds.has(id);
+
       // Remove from cart if product is deleted
-      setItems((prev) => prev.filter((item) => !deletedIds.has(item.product.id)));
+      setItems((prev) => prev.filter((item) => isProductAlive(item.product.id)));
       // Remove from wishlist if product is deleted
-      setWishlist((prev) => prev.filter((id) => !deletedIds.has(id)));
+      setWishlist((prev) => prev.filter((id) => isProductAlive(id)));
     };
     window.addEventListener("storage", handleStorageChange);
     window.addEventListener("cartUpdated", handleStorageChange);
@@ -66,6 +71,54 @@ export const CartProvider = ({ children }) => {
     };
   }, []);
 
+  // Check for expired items (15 days)
+  useEffect(() => {
+    const checkExpiries = () => {
+      const FIFTEEN_DAYS = 15 * 24 * 60 * 60 * 1000;
+      const now = Date.now();
+      
+      setItems(prev => {
+        let hasChanges = false;
+        const validItems = [];
+        
+        for (const item of prev) {
+          if (item.addedAt && (now - item.addedAt > FIFTEEN_DAYS)) {
+            hasChanges = true;
+            
+            const templateParams = {
+              name: "Trendy Drapes User",
+              email: "support@trendydrapes.com", 
+              phone: "N/A", door: "N/A", street: "N/A", city: "N/A", state: "N/A", pincode: "N/A",
+              order_id: "CART-EXPIRY",
+              items: `<div class="item"><span>${item.product.name}</span><span>Removed from cart after 15 days</span></div>`,
+              subtotal: "0", delivery: "0", gst: "0", total: "0",
+              brand_name: "Trendy Drapes",
+              email_subject: "Cart Expiry Notification",
+              email_header: "Product Removed",
+              email_footer: "Product removed from cart after 15 days"
+            };
+            
+            emailjs.send(
+              "service_wyf5asp",
+              "template_3rtoxp9",
+              templateParams,
+              "MThP-R8Y7Yn3mNaVK"
+            ).catch(err => console.log("EmailJS Error:", err));
+            
+          } else {
+            validItems.push(item);
+          }
+        }
+        
+        return hasChanges ? validItems : prev;
+      });
+    };
+    
+    checkExpiries();
+    const interval = setInterval(checkExpiries, 60 * 60 * 1000); // Check every hour
+    return () => clearInterval(interval);
+  }, []);
+
   const addToCart = useCallback((product, size = "Free Size") => {
     setItems((prev) => {
       const existing = prev.find((i) => i.product.id === product.id);
@@ -74,7 +127,7 @@ export const CartProvider = ({ children }) => {
           i.product.id === product.id ? { ...i, quantity: i.quantity + 1 } : i
         );
       }
-      return [...prev, { product, quantity: 1, size }];
+      return [...prev, { product, quantity: 1, size, addedAt: Date.now() }];
     });
   }, []);
 

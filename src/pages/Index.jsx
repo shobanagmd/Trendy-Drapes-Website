@@ -12,7 +12,7 @@ const ITEMS_PER_PAGE = 8;
 const TOTAL_PAGES = 9;
 
 const Index = () => {
-  const { localProducts, deletedProducts } = useLocalProducts();
+  const { localProducts } = useLocalProducts();
   const [searchParams] = useSearchParams();
   const categoryParam = searchParams.get("category");
   const sortParam = searchParams.get("sort");
@@ -42,11 +42,10 @@ const Index = () => {
 
   // Merge static products with localStorage products
   const allProducts = useMemo(() => {
-    const filteredStatic = products.filter((p) => !deletedProducts.includes(p.id));
-    const staticIds = new Set(filteredStatic.map((p) => p.id));
-    const merged = [...filteredStatic, ...localProducts.filter((p) => !staticIds.has(p.id))];
+    const staticIds = new Set(products.map((p) => p.id));
+    const merged = [...products, ...localProducts.filter((p) => !staticIds.has(p.id))];
     return merged;
-  }, [localProducts, deletedProducts]);
+  }, [localProducts]);
 
   // Filter by category
   const filtered = useMemo(() => {

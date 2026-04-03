@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Link } from "react-router-dom";
 import { Search, Heart, ShoppingBag, User, Menu, X } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
-import SearchModal from "@/components/SearchModal";
+import { products } from "@/data/products";
 
 const navLinks = [
   { label: "Home", to: "/" },
@@ -56,9 +56,35 @@ const AnnouncementBar = () => {
 };
 
 const Navbar = () => {
-  const [searchOpen, setSearchOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { cartCount, wishlistCount } = useCart();
+
+  const [query, setQuery] = useState("");
+  const [searchFocused, setSearchFocused] = useState(false);
+  const searchRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (searchRef.current && !searchRef.current.contains(e.target)) {
+        setSearchFocused(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const results = useMemo(() => {
+    if (!query.trim()) return [];
+    const q = query.toLowerCase();
+    return products.filter(
+      (p) =>
+        p.name.toLowerCase().includes(q) ||
+        (p.fabric && p.fabric.toLowerCase().includes(q)) ||
+        (p.color && p.color.toLowerCase().includes(q)) ||
+        (p.subCategory && p.subCategory.toLowerCase().includes(q)) ||
+        (p.work && p.work.toLowerCase().includes(q))
+    );
+  }, [query]);
 
   return (
     <>
@@ -67,27 +93,92 @@ const Navbar = () => {
         <AnnouncementBar />
 
         <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-16 lg:h-20">
-            <button
-              className="lg:hidden p-2"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            >
-              {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
-            </button>
-
-            <Link to="/" className="flex-shrink-0">
-              <h1 className="font-display text-2xl lg:text-3xl font-semibold tracking-wide">
-                Trendy Drapes
-              </h1>
-            </Link>
-
-            <div className="flex items-center gap-3 lg:gap-5">
+          <div className="flex flex-wrap lg:flex-nowrap items-center justify-between py-3 lg:py-0 lg:h-20 gap-x-4">
+            <div className="flex items-center gap-2 lg:gap-0">
               <button
-                onClick={() => setSearchOpen(true)}
-                className="p-1.5 hover:text-accent transition-colors"
+                className="lg:hidden p-2"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               >
-                <Search size={20} />
+                {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
               </button>
+
+              <Link to="/" className="flex-shrink-0">
+                <h1 className="font-display text-2xl lg:text-3xl font-semibold tracking-wide">
+                  Trendy Drapes
+                </h1>
+              </Link>
+            </div>
+
+            {/* Unified Inline Search Bar */}
+            <div className="order-last lg:order-none w-full lg:flex-1 lg:max-w-2xl mt-3 lg:mt-0 relative z-50" ref={searchRef}>
+              <div className={`flex items-center gap-2 border px-4 py-2.5 transition-all shadow-sm rounded-lg ${searchFocused ? 'border-accent bg-background ring-2 ring-accent/20' : 'border-border bg-secondary/30 hover:bg-background hover:border-border/80'}`}>
+                <Search size={18} className="text-muted-foreground shrink-0" />
+                <input
+                  type="text"
+                  placeholder="Search sarees, fabrics, colors..."
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  onFocus={() => setSearchFocused(true)}
+                  className="flex-1 bg-transparent border-none outline-none text-sm font-body text-foreground placeholder:text-muted-foreground w-full"
+                />
+                {query && (
+                  <button onClick={() => setQuery("")} className="text-muted-foreground hover:text-foreground shrink-0 p-1">
+                    <X size={16} />
+                  </button>
+                )}
+              </div>
+
+              {/* Dropdown Results */}
+              {searchFocused && query.trim() && (
+                <div className="absolute top-[calc(100%+0.5rem)] left-0 right-0 max-h-[65vh] overflow-y-auto bg-card border border-border shadow-xl rounded-xl z-50 p-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                  {results.length === 0 ? (
+                    <div className="text-center py-8">
+                      <p className="font-body text-sm font-medium text-foreground">No products found for "{query}"</p>
+                      <p className="font-body text-xs text-muted-foreground mt-1">Try checking for typos or using broader terms.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      <div className="px-3 py-2 flex items-center justify-between border-b border-border/50 mb-2">
+                        <span className="font-body text-xs text-muted-foreground font-medium uppercase tracking-wider">Products</span>
+                        <span className="font-body text-[10px] bg-secondary px-2 py-0.5 rounded-full text-foreground">{results.length} result{results.length !== 1 ? "s" : ""}</span>
+                      </div>
+                      {results.map((product) => (
+                        <Link
+                          key={product.id}
+                          to={`/product/${product.id}`}
+                          onClick={() => {
+                            setSearchFocused(false);
+                            setQuery("");
+                          }}
+                          className="flex items-center gap-4 p-2.5 rounded-lg hover:bg-secondary transition-colors group"
+                        >
+                          <div className="w-12 h-16 rounded-md overflow-hidden bg-secondary flex-shrink-0 border border-border/50">
+                            <img
+                              src={product.images?.[0] || product.image}
+                              alt={product.name}
+                              className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                            />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <h4 className="font-body text-sm font-medium text-foreground line-clamp-1 group-hover:text-accent transition-colors">{product.name}</h4>
+                            <p className="font-body text-[11px] text-muted-foreground mt-0.5 inline-flex items-center gap-1.5">
+                              {product.fabric && <span>{product.fabric}</span>}
+                              {product.fabric && product.color && <span>&bull;</span>}
+                              {product.color && <span>{product.color}</span>}
+                            </p>
+                            <p className="font-body text-sm font-semibold text-foreground mt-1 tracking-tight">
+                              ₹{product.price.toLocaleString("en-IN")}
+                            </p>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center gap-3 lg:gap-5 flex-shrink-0">
               <Link to="/wishlist" className="p-1.5 hover:text-accent transition-colors relative">
                 <Heart size={20} />
                 {wishlistCount > 0 && (
@@ -110,7 +201,7 @@ const Navbar = () => {
             </div>
           </div>
 
-          <nav className="hidden lg:flex items-center justify-center gap-6 pb-3">
+          <nav className="hidden lg:flex items-center justify-center gap-6 py-3 border-t lg:border-t-0 border-border">
             {navLinks.map((item) => (
               <Link
                 key={item.label}
@@ -141,8 +232,6 @@ const Navbar = () => {
           </nav>
         )}
       </header>
-
-      <SearchModal isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
     </>
   );
 };

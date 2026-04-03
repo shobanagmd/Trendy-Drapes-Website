@@ -44,54 +44,54 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <AuthProvider>
-        <CartProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              {/* Public */}
-              <Route path="/login" element={<Login />} />
+        <AuthProvider>
+          <CartProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                {/* Public */}
+                <Route path="/login" element={<Login />} />
 
-              {/* Protected user routes */}
-              <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
-              <Route path="/collections" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-              <Route path="/product/:id" element={<ProtectedRoute><ProductDetail /></ProtectedRoute>} />
-              <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
-              <Route path="/wishlist" element={<ProtectedRoute><Wishlist /></ProtectedRoute>} />
-              <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-              <Route path="/checkout" element={<ProtectedRoute><CheckoutPage /></ProtectedRoute>} />
-              <Route path="/order-success" element={<ProtectedRoute><OrderSuccess /></ProtectedRoute>} />
-              <Route path="/about" element={<ProtectedRoute><About /></ProtectedRoute>} />
-              <Route path="/contact" element={<ProtectedRoute><Contact /></ProtectedRoute>} />
-              <Route path="/privacy" element={<ProtectedRoute><Privacy /></ProtectedRoute>} />
-              <Route path="/sale" element={<ProtectedRoute><Sales /></ProtectedRoute>} />
+                {/* Protected user routes */}
+                <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+                <Route path="/collections" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+                <Route path="/product/:id" element={<ProtectedRoute><ProductDetail /></ProtectedRoute>} />
+                <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
+                <Route path="/wishlist" element={<ProtectedRoute><Wishlist /></ProtectedRoute>} />
+                <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                <Route path="/checkout" element={<ProtectedRoute><CheckoutPage /></ProtectedRoute>} />
+                <Route path="/order-success" element={<ProtectedRoute><OrderSuccess /></ProtectedRoute>} />
+                <Route path="/about" element={<ProtectedRoute><About /></ProtectedRoute>} />
+                <Route path="/contact" element={<ProtectedRoute><Contact /></ProtectedRoute>} />
+                <Route path="/privacy" element={<ProtectedRoute><Privacy /></ProtectedRoute>} />
+                <Route path="/sale" element={<ProtectedRoute><Sales /></ProtectedRoute>} />
 
-              {/* Admin login - public route */}
-              <Route path="/admin-login" element={<AdminLogin />} />
+                {/* Admin login - public route */}
+                <Route path="/admin-login" element={<AdminLogin />} />
 
-              {/* Admin dashboard routes */}
-              <Route path="/admin" element={<AdminRoute><DashboardLayout /></AdminRoute>}>
-                <Route index element={<DashboardHome />} />
-                <Route path="products" element={<ProductsPage />} />
-                <Route path="products/add" element={<AddProductPage />} />
-                <Route path="orders" element={<OrdersPage />} />
-                <Route path="payments" element={<PaymentsPage />} />
-                <Route path="returns" element={<ReturnsPage />} />
-                <Route path="finance" element={<FinancePage />} />
-                <Route path="reports" element={<ReportsPage />} />
-                <Route path="profile" element={<ProfilePage />} />
-                <Route path="support" element={<SupportPage />} />
-                <Route path="settings" element={<SettingsPage />} />
-                <Route path="vendor" element={<VendorPage />} />
-              </Route>
+                {/* Admin dashboard routes */}
+                <Route path="/admin" element={<AdminRoute><DashboardLayout /></AdminRoute>}>
+                  <Route index element={<DashboardHome />} />
+                  <Route path="products" element={<ProductsPage />} />
+                  <Route path="products/add" element={<AddProductPage />} />
+                  <Route path="orders" element={<OrdersPage />} />
+                  <Route path="payments" element={<PaymentsPage />} />
+                  <Route path="returns" element={<ReturnsPage />} />
+                  <Route path="finance" element={<FinancePage />} />
+                  <Route path="reports" element={<ReportsPage />} />
+                  <Route path="profile" element={<ProfilePage />} />
+                  <Route path="support" element={<SupportPage />} />
+                  <Route path="settings" element={<SettingsPage />} />
+                  <Route path="vendor" element={<VendorPage />} />
+                </Route>
 
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </CartProvider>
-      </AuthProvider>
-    </TooltipProvider>
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </CartProvider>
+        </AuthProvider>
+      </TooltipProvider>
   </QueryClientProvider>
 );
 

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Upload, X, Plus } from "lucide-react";
-import { useLocalProducts } from "@/hooks/useLocalProducts";
+import { useLocalProducts } from "@/admin/hooks/useLocalProducts";
 import { useToast } from "@/hooks/use-toast";
 
 const categoryOptions = ["Sarees", "Bridal", "Lehengas", "Indo-Western", "Jewellery"];
@@ -95,18 +95,8 @@ export default function AddProductPage() {
 
   const validate = () => {
     const errs = {};
-    if (!form.name.trim())                               errs.name        = "Required";
-    if (!form.sku.trim())                                errs.sku         = "Required";
-    if (!form.seller.trim())                             errs.seller      = "Required";
-    if (!form.subCategory)                               errs.subCategory = "Required";
-    if (!form.price || Number(form.price) <= 0)          errs.price       = "Required";
-    if (!form.mrp   || Number(form.mrp)   <= 0)          errs.mrp         = "Required";
-    if (Number(form.price) > Number(form.mrp))           errs.price       = "Price must be ≤ MRP";
-    if (!form.stock && form.stock !== "0")               errs.stock       = "Required";
-    if (form.images.length === 0)                        errs.images      = "At least one image required";
-    if (!form.description.trim())                        errs.description = "Required";
-    if (form.category !== "Jewellery" && !form.fabric)   errs.fabric      = "Required";
-    if (!form.color)                                     errs.color       = "Required";
+    if (!form.name.trim()) errs.name = "Name is required";
+    if (!form.price || Number(form.price) <= 0) errs.price = "Valid price is required";
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -117,30 +107,30 @@ export default function AddProductPage() {
 
     setSubmitting(true);
 
-    const price    = Number(form.price);
-    const mrp      = Number(form.mrp);
+    const price    = Number(form.price) || 0;
+    const mrp      = Number(form.mrp) || price; // fallback mrp to price
     const discount = mrp > 0 ? Math.round(((mrp - price) / mrp) * 100) : 0;
 
     const product = {
       id:            `local-${Date.now()}`,
       sku:           form.sku.trim() || `SKU-${Date.now()}`,
       name:          form.name.trim(),
-      seller:        form.seller.trim(),
-      category:      form.category,
-      subCategory:   form.subCategory,
+      seller:        form.seller.trim() || "Trendy Drapes",
+      category:      form.category || "Fashion",
+      subCategory:   form.subCategory || "General",
       price,
       originalPrice: mrp,
       mrp,
-      stock:         Number(form.stock),
-      description:   form.description.trim(),
-      image:         form.images[0],
+      stock:         form.stock !== "" ? Number(form.stock) : 10,
+      description:   form.description.trim() || "A beautiful authentic piece.",
+      image:         form.images[0] || "📦",
       images:        form.images,
       discount,
-      fabric:        form.fabric,
-      color:         form.color,
-      work:          form.work    || "None",
+      fabric:        form.fabric || "Premium Material",
+      color:         form.color || "Multicolor",
+      work:          form.work || "Detailed Work",
       pattern:       form.pattern || "Solid",
-      sizes:         form.sizes,
+      sizes:         form.sizes.length > 0 ? form.sizes : ["Free Size"],
       readyToShip:   form.readyToShip,
       featured:      form.featured,
       isNew:         true,

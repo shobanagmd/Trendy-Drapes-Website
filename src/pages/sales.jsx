@@ -7,19 +7,18 @@ import { products } from "@/data/products";
 import { useLocalProducts } from "@/hooks/useLocalProducts";
 
 const Sales = () => {
-  const { localProducts, deletedProducts } = useLocalProducts();
+  const { localProducts } = useLocalProducts();
 
-  // Merge static + admin-added products, remove deleted ones
+  // Merge static + admin-added products
   const allProducts = useMemo(() => {
-    const filteredStatic = products.filter((p) => !deletedProducts.includes(p.id));
-    const staticIds = new Set(filteredStatic.map((p) => p.id));
+    const staticIds = new Set(products.map((p) => p.id));
     const merged = [
-      ...filteredStatic,
+      ...products,
       ...localProducts.filter((p) => !staticIds.has(p.id)),
     ];
     // Sort by discount descending — highest discount first
     return merged.sort((a, b) => (b.discount || 0) - (a.discount || 0));
-  }, [localProducts, deletedProducts]);
+  }, [localProducts]);
 
   // Stats for the banner
   const maxDiscount = allProducts.length > 0

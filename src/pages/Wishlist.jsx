@@ -9,9 +9,8 @@ import { toast } from "sonner";
 
 const Wishlist = () => {
   const { wishlist, toggleWishlist, addToCart } = useCart();
-  const { localProducts, deletedProducts } = useLocalProducts();
-  const filteredStatic = products.filter((p) => !deletedProducts.includes(p.id));
-  const allProducts = [...filteredStatic, ...localProducts];
+  const { localProducts } = useLocalProducts();
+  const allProducts = [...products, ...localProducts];
   const wishlistProducts = allProducts.filter((p) => wishlist.includes(p.id));
 
   if (wishlistProducts.length === 0) {

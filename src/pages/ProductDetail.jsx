@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Heart, ShoppingBag, Truck, RotateCcw, Shield, ChevronLeft, X, ZoomIn, Star } from "lucide-react";
+import { Heart, ShoppingBag, Truck, RotateCcw, Shield, ChevronLeft, ChevronRight, X, ZoomIn, Star, Image as ImageIcon, Video } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ProductCard from "@/components/ProductCard";
@@ -13,10 +13,13 @@ import { toast } from "sonner";
 // Mock reviews data
 // ─────────────────────────────────────────────────────────────────────────────
 const MOCK_REVIEWS = [
-  { id: 1, name: "Priya S.",  rating: 5, text: "Absolutely gorgeous! The fabric quality is amazing and the color is even more vibrant in person.", date: "2025-12-15" },
-  { id: 2, name: "Ananya R.", rating: 4, text: "Beautiful saree, received it well packed. Slightly different shade than expected but still lovely.", date: "2025-11-28" },
-  { id: 3, name: "Meera K.",  rating: 5, text: "Perfect for my sister's wedding. Got so many compliments! Will definitely buy again.", date: "2025-10-10" },
+  { id: 1, name: "Priya S.",  rating: 5, text: "Absolutely gorgeous! The fabric quality is amazing and the color is even more vibrant in person.", date: "2025-12-15", media: [] },
+  { id: 2, name: "Ananya R.", rating: 4, text: "Beautiful saree, received it well packed. Slightly different shade than expected but still lovely.", date: "2025-11-28", media: [] },
+  { id: 3, name: "Meera K.",  rating: 5, text: "Perfect for my sister's wedding. Got so many compliments! Will definitely buy again.", date: "2025-10-10", media: [] },
 ];
+
+/* ZOOM AND LENS COMPONENTS ... */
+// (I will retain from StarRating downwards to ProductDetail component)
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Star rating display component
@@ -233,14 +236,18 @@ const ImageModal = ({ images, startIndex, onClose }) => {
 // ─────────────────────────────────────────────────────────────────────────────
 const ProductDetail = () => {
   const { id } = useParams();
-  const { localProducts, deletedProducts } = useLocalProducts();
+  const { localProducts } = useLocalProducts();
 
   const allProducts = useMemo(() => {
-    const filteredStatic = products.filter((p) => !deletedProducts.includes(p.id));
-    return [...filteredStatic, ...localProducts];
-  }, [localProducts, deletedProducts]);
+    return [...products, ...localProducts];
+  }, [localProducts]);
 
   const product = useMemo(() => allProducts.find((p) => p.id === id), [id, allProducts]);
+
+  // Scroll to top when product changes (e.g., clicking from Similar Products)
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [id]);
 
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedSize,  setSelectedSize]  = useState("Free Size");
@@ -249,11 +256,39 @@ const ProductDetail = () => {
   const [reviews,       setReviews]       = useState(MOCK_REVIEWS);
   const [reviewText,    setReviewText]    = useState("");
   const [reviewRating,  setReviewRating]  = useState(5);
+  
+  // Media upload states for Reviews
+  const [reviewMedia,         setReviewMedia]         = useState([]);
+  const [reviewLightboxOpen,  setReviewLightboxOpen]  = useState(false);
+  const [lightboxImages,      setLightboxImages]      = useState([]);
+  const [lightboxStartIndex,  setLightboxStartIndex]  = useState(0);
 
   const { addToCart, toggleWishlist, isInWishlist } = useCart();
 
   const openLightbox  = useCallback(() => setLightboxOpen(true),  []);
   const closeLightbox = useCallback(() => setLightboxOpen(false), []);
+
+  const handleMediaUpload = (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+    const newMedia = files.map(file => ({
+      file,
+      url: URL.createObjectURL(file),
+      type: file.type
+    }));
+    setReviewMedia(prev => [...prev, ...newMedia]);
+    // Reset file input so same file can be selected again
+    e.target.value = null;
+  };
+
+  const removeMedia = (index) => {
+    setReviewMedia(prev => {
+      const copy = [...prev];
+      URL.revokeObjectURL(copy[index].url);
+      copy.splice(index, 1);
+      return copy;
+    });
+  };
 
   // Similar products: same category, exclude current
   const similarProducts = useMemo(() => {
@@ -291,13 +326,22 @@ const ProductDetail = () => {
 
   const handleSubmitReview = (e) => {
     e.preventDefault();
-    if (!reviewText.trim()) return;
+    // Allow submission if there is either text OR media
+    if (!reviewText.trim() && reviewMedia.length === 0) return;
+    
+    // Save URLs to avoid memory leaks if we want them persistent for session, 
+    // but in a real app these would be uploaded to a server.
+    const mediaToSave = reviewMedia.map(m => ({ url: m.url, type: m.type }));
+    
     setReviews((prev) => [{
       id: Date.now(), name: "You", rating: reviewRating,
       text: reviewText.trim(), date: new Date().toISOString().split("T")[0],
+      media: mediaToSave
     }, ...prev]);
+    
     setReviewText("");
     setReviewRating(5);
+    setReviewMedia([]);
     toast.success("Review submitted!");
   };
 
@@ -319,7 +363,7 @@ const ProductDetail = () => {
           <div className="space-y-4">
             {/* Main image: hover scales, click opens lightbox */}
             <div
-              className="aspect-[3/4] overflow-hidden bg-secondary relative group cursor-zoom-in"
+              className="aspect-[3/4] overflow-hidden bg-secondary relative group cursor-zoom-in rounded-lg"
               onMouseEnter={() => setIsHovered(true)}
               onMouseLeave={() => setIsHovered(false)}
               onClick={openLightbox}
@@ -330,24 +374,49 @@ const ProductDetail = () => {
                 className="w-full h-full object-cover transition-transform duration-500"
                 style={{ transform: isHovered ? "scale(1.06)" : "scale(1)" }}
               />
+
+              {/* Navigation arrows (only visible on hover) */}
               <div
-                className="absolute inset-0 flex items-center justify-center transition-opacity duration-300"
-                style={{ opacity: isHovered ? 1 : 0, background: "rgba(0,0,0,0.12)" }}
+                className="absolute inset-x-0 inset-y-1/2 flex justify-between px-4 -translate-y-1/2 pointer-events-none z-20"
+                style={{ opacity: isHovered ? 1 : 0, transition: "opacity 0.3s" }}
               >
-                <div className="flex items-center gap-2 px-4 py-2 bg-card/80 backdrop-blur-sm">
-                  <ZoomIn size={16} className="text-foreground" />
-                  <span className="font-body text-xs text-foreground tracking-wider uppercase">Click to zoom</span>
+                {images.length > 1 && (
+                  <button 
+                    className="w-10 h-10 rounded-full bg-background/90 backdrop-blur-md shadow-sm border border-border flex items-center justify-center text-foreground hover:bg-background hover:scale-105 pointer-events-auto transition-all cursor-pointer"
+                    onClick={(e) => { e.stopPropagation(); setSelectedImage((prev) => (prev - 1 + images.length) % images.length); }}
+                  >
+                    <ChevronLeft size={20} className="mr-0.5" />
+                  </button>
+                )}
+                {images.length > 1 && (
+                  <button 
+                    className="w-10 h-10 rounded-full bg-background/90 backdrop-blur-md shadow-sm border border-border flex items-center justify-center text-foreground hover:bg-background hover:scale-105 pointer-events-auto transition-all cursor-pointer"
+                    onClick={(e) => { e.stopPropagation(); setSelectedImage((prev) => (prev + 1) % images.length); }}
+                  >
+                    <ChevronRight size={20} className="ml-0.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Zoom indicator tooltip */}
+              <div
+                className="absolute bottom-5 left-1/2 -translate-x-1/2 flex items-center justify-center transition-opacity duration-300 pointer-events-none z-10"
+                style={{ opacity: isHovered && images.length === 1 ? 1 : 0 }}
+              >
+                <div className="flex items-center gap-2 px-4 py-2 bg-background/90 rounded-full backdrop-blur-sm shadow-sm border border-border">
+                  <ZoomIn size={14} className="text-foreground" />
+                  <span className="font-body text-[10px] font-bold text-foreground tracking-widest uppercase">Zoom</span>
                 </div>
               </div>
             </div>
 
             {/* Thumbnails */}
             {images.length > 1 && (
-              <div className="flex gap-3">
-                {images.map((img, i) => (
+              <div className="flex flex-wrap gap-2.5 mt-2">
+                {images.slice(0, 5).map((img, i) => (
                   <button key={i} onClick={() => setSelectedImage(i)}
-                    className={`w-20 h-28 overflow-hidden border-2 transition-colors ${selectedImage === i ? "border-accent" : "border-border hover:border-accent/50"}`}>
-                    <img src={img} alt="" className="w-full h-full object-cover" />
+                    className={`relative w-16 h-20 sm:w-14 sm:h-20 lg:w-[4.5rem] lg:h-24 overflow-hidden rounded-md transition-all duration-300 border-2 cursor-pointer ${selectedImage === i ? "border-primary ring-2 ring-primary/20 shadow-md opacity-100 -translate-y-1" : "border-transparent opacity-60 hover:opacity-100 hover:border-primary/40 text-muted-foreground"}`}>
+                    <img src={img} alt={`Variant ${i+1}`} className="w-full h-full object-cover" />
                   </button>
                 ))}
               </div>
@@ -445,7 +514,7 @@ const ProductDetail = () => {
                 </div>
               </div>
 
-              <form onSubmit={handleSubmitReview} className="space-y-3 pt-4 border-t border-border">
+              <form onSubmit={handleSubmitReview} className="space-y-4 pt-4 border-t border-border">
                 <p className="font-body text-sm font-medium text-foreground">Write a Review</p>
                 <div className="flex items-center gap-1">
                   {[1, 2, 3, 4, 5].map((s) => (
@@ -458,10 +527,45 @@ const ProductDetail = () => {
                   value={reviewText}
                   onChange={(e) => setReviewText(e.target.value)}
                   placeholder="Share your experience..."
-                  className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm font-body placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm font-body placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                 />
+                
+                {/* Media Upload Buttons */}
+                <div className="flex items-center gap-3">
+                  <label className="cursor-pointer inline-flex items-center gap-2 px-3 py-1.5 border border-border rounded-md hover:bg-secondary transition-colors text-sm font-body text-foreground">
+                    <ImageIcon size={16} className="text-muted-foreground" /> Add Images
+                    <input type="file" multiple accept="image/*" className="hidden" onChange={handleMediaUpload} />
+                  </label>
+                  <label className="cursor-pointer inline-flex items-center gap-2 px-3 py-1.5 border border-border rounded-md hover:bg-secondary transition-colors text-sm font-body text-foreground">
+                    <Video size={16} className="text-muted-foreground" /> Add Videos
+                    <input type="file" multiple accept="video/*" className="hidden" onChange={handleMediaUpload} />
+                  </label>
+                </div>
+
+                {/* Media Preview Section */}
+                {reviewMedia.length > 0 && (
+                  <div className="flex flex-wrap gap-2 pt-2">
+                    {reviewMedia.map((m, idx) => (
+                      <div key={idx} className="relative w-16 h-16 rounded-md overflow-hidden border border-border isolate">
+                        {m.type.startsWith("video/") ? (
+                          <video src={m.url} className="w-full h-full object-cover" />
+                        ) : (
+                          <img src={m.url} alt="upload preview" className="w-full h-full object-cover" />
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => removeMedia(idx)}
+                          className="absolute -top-1 -right-1 bg-background text-foreground rounded-full p-0.5 shadow-sm border border-border hover:text-destructive z-10"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 <button type="submit"
-                  className="px-6 py-2.5 bg-primary text-primary-foreground font-body text-sm font-semibold tracking-wider uppercase hover:opacity-90 transition-opacity">
+                  className="px-6 py-2.5 bg-primary text-primary-foreground font-body text-sm font-semibold tracking-wider uppercase hover:opacity-90 transition-opacity w-full sm:w-auto mt-2">
                   Submit Review
                 </button>
               </form>
@@ -481,7 +585,28 @@ const ProductDetail = () => {
                     <span className="font-body text-xs text-muted-foreground">{review.date}</span>
                   </div>
                   <StarRating rating={review.rating} size={14} />
-                  <p className="font-body text-sm text-muted-foreground mt-2 leading-relaxed">{review.text}</p>
+                  <p className="font-body text-sm text-foreground mt-2 leading-relaxed">{review.text}</p>
+                  
+                  {/* Display Uploaded Media */}
+                  {review.media && review.media.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      {review.media.map((m, idx) => (
+                        <div key={idx} className="w-20 h-24 rounded-md overflow-hidden border border-border bg-secondary cursor-pointer hover:opacity-90 transition-opacity" onClick={() => {
+                          if (!m.type.startsWith("video/")) {
+                            setLightboxImages(review.media.filter(med => !med.type.startsWith("video/")).map(med => med.url));
+                            setLightboxStartIndex(review.media.filter(med => !med.type.startsWith("video/")).findIndex(med => med.url === m.url));
+                            setReviewLightboxOpen(true);
+                          }
+                        }}>
+                          {m.type.startsWith("video/") ? (
+                            <video src={m.url} className="w-full h-full object-cover" controls playsInline />
+                          ) : (
+                            <img src={m.url} alt={`Review media ${idx}`} className="w-full h-full object-cover" loading="lazy" />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -506,6 +631,11 @@ const ProductDetail = () => {
       {/* Lightbox with Amazon zoom — rendered outside main flow */}
       {lightboxOpen && (
         <ImageModal images={images} startIndex={selectedImage} onClose={closeLightbox} />
+      )}
+      
+      {/* Review Lightbox */}
+      {reviewLightboxOpen && (
+        <ImageModal images={lightboxImages} startIndex={lightboxStartIndex} onClose={() => setReviewLightboxOpen(false)} />
       )}
     </div>
   );

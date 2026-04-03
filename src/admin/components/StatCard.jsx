@@ -15,7 +15,7 @@ export function StatCard({ title, value, todayValue, change, changeType = "neutr
         <p className="text-2xl font-black text-card-foreground tracking-tight">{value}</p>
         {todayValue && (
           <p className="text-[11px] font-bold text-success flex items-center gap-1">
-            +{todayValue} <span className="text-muted-foreground font-medium lowercase">today</span>
+            +{todayValue} <span className="text-muted-foreground font-medium lowercase">yesterday</span>
           </p>
         )}
       </div>

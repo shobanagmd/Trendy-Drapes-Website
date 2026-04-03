@@ -1,21 +1,15 @@
 import { useState, useEffect, useCallback } from "react";
 
 const STORAGE_KEY = "products";
-const DELETED_KEY = "deletedProducts";
+
+const DEFAULT_SKUS = ["TD-E-001", "TD-F-002", "TD-E-003", "TD-B-004", "TD-S-005", "TD-H-006", "TD-F-007", "TD-E-008"];
 
 export const getLocalProducts = () => {
   try {
     const data = localStorage.getItem(STORAGE_KEY);
-    return data ? JSON.parse(data) : [];
-  } catch {
-    return [];
-  }
-};
-
-export const getDeletedProducts = () => {
-  try {
-    const data = localStorage.getItem(DELETED_KEY);
-    return data ? JSON.parse(data) : [];
+    if (!data) return [];
+    const parsed = JSON.parse(data);
+    return parsed.filter((p) => !DEFAULT_SKUS.includes(p.sku));
   } catch {
     return [];
   }
@@ -23,14 +17,10 @@ export const getDeletedProducts = () => {
 
 export const useLocalProducts = () => {
   const [localProducts, setLocalProducts] = useState(getLocalProducts);
-  const [deletedProducts, setDeletedProducts] = useState(getDeletedProducts);
 
   // Listen for storage changes from other tabs/components
   useEffect(() => {
-    const handler = () => {
-      setLocalProducts(getLocalProducts());
-      setDeletedProducts(getDeletedProducts());
-    };
+    const handler = () => setLocalProducts(getLocalProducts());
     window.addEventListener("storage", handler);
     window.addEventListener("localProductsUpdated", handler);
     return () => {
@@ -52,15 +42,12 @@ export const useLocalProducts = () => {
 
   const removeProduct = useCallback((id) => {
     const current = getLocalProducts();
-    const deleted = getDeletedProducts();
     const updated = current.filter((p) => p.id !== id);
-    const updatedDeleted = [...deleted, id];
+    // Explicitly set empty array if all deleted
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-    localStorage.setItem(DELETED_KEY, JSON.stringify(updatedDeleted));
     setLocalProducts(updated);
-    setDeletedProducts(updatedDeleted);
     window.dispatchEvent(new Event("localProductsUpdated"));
   }, []);
 
-  return { localProducts, deletedProducts, addProduct, removeProduct };
+  return { localProducts, addProduct, removeProduct };
 };

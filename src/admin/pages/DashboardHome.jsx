@@ -175,7 +175,7 @@ function PerformanceBar({ value }) {
 
 export default function DashboardHome() {
   const [products, setProducts] = useState([]);
-  const { localProducts, deletedProducts } = useLocalProducts();
+  const { localProducts } = useLocalProducts();
   const { searchQuery: search, setSearchQuery: setSearch } = useAdminSearch();
 
   const [category, setCategory]     = useState("All");
@@ -185,14 +185,9 @@ export default function DashboardHome() {
   const [salesPeriod, setSalesPeriod] = useState("monthly");
 
   useEffect(() => {
-    const baseProducts = getAllProducts();
-    const combined = [...baseProducts, ...localProducts];
-    const uniqueMap = new Map();
-    combined.forEach(p => {
-      if (!deletedProducts.includes(p.id)) uniqueMap.set(p.id, p);
-    });
-    setProducts(Array.from(uniqueMap.values()));
-  }, [localProducts, deletedProducts]);
+    // Just use localProducts (already handles uniqueness by id internally and filters out defaults)
+    setProducts([...localProducts]);
+  }, [localProducts]);
 
   const getStatus = (product) => (product.stock === 0 ? "Out of Stock" : "Active");
 
