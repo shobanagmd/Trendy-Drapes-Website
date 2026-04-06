@@ -1,19 +1,25 @@
-import { User, Package, Heart, MapPin, LogOut } from "lucide-react";
+import { User, Package, Heart, MapPin, LogOut, LayoutDashboard } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
 const Profile = () => {
-  const { user, logout } = useAuth();
+  const { user, role, logout } = useAuth();
   const navigate = useNavigate();
-
-  const menuItems = [
-    { icon: Package, label: "My Orders", desc: "Track, return or buy again", link: "" },
-    { icon: Heart, label: "Wishlist", desc: "Your saved items", link: "/wishlist" },
-    { icon: MapPin, label: "Addresses", desc: "Manage your delivery addresses", link: "" },
-    { icon: User, label: "Profile Details", desc: "Edit your personal information", link: "" },
-  ];
+ 
+   const menuItems = [
+     { icon: Package, label: "My Orders", desc: "Track, return or buy again", link: "" },
+     { icon: Heart, label: "Wishlist", desc: "Your saved items", link: "/wishlist" },
+     { icon: MapPin, label: "Addresses", desc: "Manage your delivery addresses", link: "" },
+     { icon: User, label: "Profile Details", desc: "Edit your personal information", link: "" },
+   ];
+ 
+   if (role === "admin") {
+     menuItems.unshift({ icon: LayoutDashboard, label: "Admin Dashboard", desc: "Manage store and products", link: "/admin" });
+   } else if (role === "seller") {
+     menuItems.unshift({ icon: LayoutDashboard, label: "Seller Dashboard", desc: "Manage your seller account", link: "/seller/dashboard" });
+   }
 
   const handleLogout = () => {
     logout();

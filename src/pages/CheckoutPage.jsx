@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import emailjs from "emailjs-com";
 import { Lock, ChevronDown, ChevronUp, Tag, Truck, ShieldCheck, CreditCard, Smartphone, Building2, Wallet, CheckCircle2, AlertCircle } from 'lucide-react';
 import './CheckoutPage.css';
-
+import dotenv from 'dotenv'
 // ── GST rate ──────────────────────────────────────────────────
 const GST_RATE = 0.05; // 5%
 const COUPONS = {
@@ -56,6 +56,7 @@ const sendOrderEmail = (delivery, items, totals, orderId) => {
     items: itemListHTML,
     subtotal: totals.subtotal,
     delivery: totals.delivery,
+    platform_fee: totals.platformFee,
     gst: totals.gst,
     total: totals.total,
     brand_name: "Trendy Drapes",
@@ -64,11 +65,11 @@ const sendOrderEmail = (delivery, items, totals, orderId) => {
     email_footer: "Thank you for shopping with Trendy Drapes! Visit us again soon."
   };
 
-  emailjs.send(
-    "service_wyf5asp",
-    "template_3rtoxp9",
+ emailjs.send(
+    import.meta.env.VITE_EMAILJS_SERVICE_ID,
+    import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
     templateParams,
-    "MThP-R8Y7Yn3mNaVK"
+    import.meta.env.VITE_EMAILJS_PUBLIC_KEY
   )
   .then(() => console.log("Email sent"))
   .catch(err => console.log(err));
@@ -115,7 +116,8 @@ const OrderSummary = ({ cartItems, couponCode, setCouponCode, couponApplied, set
 
   const subtotal  = cartItems.reduce((s, i) => s + i.product.price * i.quantity, 0);
   const savings   = cartItems.reduce((s, i) => s + ((i.product.originalPrice ?? i.product.price) - i.product.price) * i.quantity, 0);
-  const delivery  = subtotal >= 499 ? 0 : 49;
+  const delivery  = 49;
+  const platformFee = 19;
   const gst       = subtotal * GST_RATE;
 
   let couponDisc = 0;
@@ -128,7 +130,7 @@ const OrderSummary = ({ cartItems, couponCode, setCouponCode, couponApplied, set
     }
   }
 
-  const total = subtotal + delivery + gst - couponDisc;
+  const total = subtotal + delivery + platformFee + gst - couponDisc;
 
   const handleApplyCoupon = () => {
     const code = inputCode.trim().toUpperCase();
@@ -214,8 +216,12 @@ const OrderSummary = ({ cartItems, couponCode, setCouponCode, couponApplied, set
               </div>
             )}
             <div className="chk-price-row">
-              <span>Delivery</span>
-              <span>{delivery === 0 ? <span className="chk-free">FREE</span> : `₹${delivery}`}</span>
+              <span>Delivery Fee</span>
+              <span>₹{delivery}</span>
+            </div>
+            <div className="chk-price-row">
+              <span>Platform Fee</span>
+              <span>₹{platformFee}</span>
             </div>
             <div className="chk-price-row">
               <span>GST (5%)</span>
@@ -512,14 +518,15 @@ const PaymentStep = ({ onNext, onBack }) => {
 const ConfirmStep = ({ delivery, cartItems, couponApplied, onBack, onPlace }) => {
   const subtotal   = cartItems.reduce((s, i) => s + i.product.price * i.quantity, 0);
   const savings    = cartItems.reduce((s, i) => s + ((i.product.originalPrice ?? i.product.price) - i.product.price) * i.quantity, 0);
-  const deliveryFee = subtotal >= 499 ? 0 : 49;
+  const deliveryFee = 49;
+  const platformFee = 19;
   const gst        = subtotal * GST_RATE;
   let couponDisc   = 0;
   if (couponApplied && COUPONS[couponApplied]) {
     const c = COUPONS[couponApplied];
     couponDisc = c.type === 'percent' ? subtotal * c.value / 100 : c.value;
   }
-  const total = subtotal + deliveryFee + gst - couponDisc;
+  const total = subtotal + deliveryFee + platformFee + gst - couponDisc;
 
   return (
     <div className="chk-step-body">
@@ -547,7 +554,8 @@ const ConfirmStep = ({ delivery, cartItems, couponApplied, onBack, onPlace }) =>
           <div className="chk-confirm-row"><span>Subtotal</span><span>₹{fmt(subtotal)}</span></div>
           {savings > 0 && <div className="chk-confirm-row green"><span>Product Discount</span><span>−₹{fmt(savings)}</span></div>}
           {couponDisc > 0 && <div className="chk-confirm-row green"><span>Coupon ({couponApplied})</span><span>−₹{fmt(couponDisc)}</span></div>}
-          <div className="chk-confirm-row"><span>Delivery</span><span>{deliveryFee === 0 ? 'FREE' : `₹${deliveryFee}`}</span></div>
+          <div className="chk-confirm-row"><span>Delivery Fee</span><span>₹{deliveryFee}</span></div>
+          <div className="chk-confirm-row"><span>Platform Fee</span><span>₹{platformFee}</span></div>
           <div className="chk-confirm-row"><span>GST (5%)</span><span>+₹{fmt(gst)}</span></div>
           <div className="chk-confirm-divider" />
           <div className="chk-confirm-row total"><span>Total Payable</span><span>₹{fmt(total)}</span></div>
@@ -608,16 +616,17 @@ const CheckoutPage = () => {
 
     // Calculate totals for email
     const subtotal = items.reduce((s, i) => s + i.product.price * i.quantity, 0);
-    const deliveryFee = subtotal >= 499 ? 0 : 49;
+    const deliveryFee = 49;
+    const platformFee = 19;
     const gst = subtotal * GST_RATE;
     let couponDisc = 0;
     if (couponApplied && COUPONS[couponApplied]) {
       const c = COUPONS[couponApplied];
       couponDisc = c.type === 'percent' ? subtotal * (c.value / 100) : c.value;
     }
-    const total = subtotal + deliveryFee + gst - couponDisc;
+    const total = subtotal + deliveryFee + platformFee + gst - couponDisc;
 
-    sendOrderEmail(delivery, items, { subtotal, delivery: deliveryFee, gst, total }, id);
+    sendOrderEmail(delivery, items, { subtotal, delivery: deliveryFee, platformFee, gst, total }, id);
 
     setOrderId(id);
     clearCart();

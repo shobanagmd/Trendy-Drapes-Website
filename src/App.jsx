@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { CartProvider } from "@/contexts/CartContext";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { ProtectedRoute, AdminRoute } from "@/components/ProtectedRoute";
+import { ProtectedRoute, AdminRoute, SellerRoute } from "@/components/ProtectedRoute";
 
 // User pages
 import Home from "./pages/Home";
@@ -38,6 +38,9 @@ import SettingsPage from "@/admin/pages/SettingsPage";
 import VendorPage from "@/admin/pages/VendorPage";
 import PaymentsPage from "@/admin/pages/PaymentsPage";
 import ReturnsPage from "@/admin/pages/ReturnsPage";
+
+// Seller app
+import SellerApp from "./seller/src/App";
 
 const queryClient = new QueryClient();
 
@@ -83,8 +86,10 @@ const App = () => (
                   <Route path="profile" element={<ProfilePage />} />
                   <Route path="support" element={<SupportPage />} />
                   <Route path="settings" element={<SettingsPage />} />
-                  <Route path="vendor" element={<VendorPage />} />
                 </Route>
+
+                {/* Seller routes */}
+                <Route path="/seller/*" element={<SellerRoute><SellerApp /></SellerRoute>} />
 
                 <Route path="*" element={<NotFound />} />
               </Routes>

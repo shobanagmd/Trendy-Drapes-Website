@@ -23,6 +23,14 @@ export const AuthProvider = ({ children }) => {
       return false;
     }
   });
+  
+  const [role, setRole] = useState(() => {
+    try {
+      return localStorage.getItem("role") || null;
+    } catch {
+      return null;
+    }
+  });
 
   // Get all registered users from localStorage
   const getRegisteredUsers = useCallback(() => {
@@ -47,8 +55,35 @@ export const AuthProvider = ({ children }) => {
     return { success: true, message: "Account created successfully! Please login to continue." };
   }, [getRegisteredUsers]);
 
-  // Login — only allowed if user has registered first
+  // Login — handles admin, seller, and regular users
   const login = useCallback((email, password) => {
+    // 1. Admin Check
+    if (email.toLowerCase() === "admin@gmail.com" && password === "admin@123") {
+      const adminData = { email: "admin@gmail.com", name: "Admin" };
+      localStorage.setItem(USER_KEY, JSON.stringify(adminData));
+      localStorage.setItem("role", "admin");
+      localStorage.setItem(ADMIN_KEY, "true");
+      localStorage.setItem("isLoggedIn", "true");
+      setUser(adminData);
+      setRole("admin");
+      setIsAdmin(true);
+      return { success: true, role: "admin" };
+    }
+
+    // 2. Seller Check
+    if (email.toLowerCase() === "seller@gmail.com" && password === "seller@123") {
+      const sellerData = { email: "seller@gmail.com", name: "Seller" };
+      localStorage.setItem(USER_KEY, JSON.stringify(sellerData));
+      localStorage.setItem("role", "seller");
+      localStorage.setItem(ADMIN_KEY, "false");
+      localStorage.setItem("isLoggedIn", "true");
+      setUser(sellerData);
+      setRole("seller");
+      setIsAdmin(false);
+      return { success: true, role: "seller" };
+    }
+
+    // 3. Regular User Check
     const users = getRegisteredUsers();
     const found = users.find(
       (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password
@@ -58,33 +93,47 @@ export const AuthProvider = ({ children }) => {
     }
     const userData = { email: found.email, name: found.name };
     localStorage.setItem(USER_KEY, JSON.stringify(userData));
+    localStorage.setItem("role", "user");
+    localStorage.setItem(ADMIN_KEY, "false");
+    localStorage.setItem("isLoggedIn", "true");
     setUser(userData);
-    return { success: true };
+    setRole("user");
+    setIsAdmin(false);
+    return { success: true, role: "user" };
   }, [getRegisteredUsers]);
 
   const logout = useCallback(() => {
     localStorage.removeItem(USER_KEY);
     localStorage.removeItem(ADMIN_KEY);
+    localStorage.removeItem("role");
+    localStorage.removeItem("isLoggedIn");
     setUser(null);
+    setRole(null);
     setIsAdmin(false);
   }, []);
 
   const adminLogin = useCallback((username, password) => {
-    if (username === "admin" && password === "admin123") {
+    // Allow both 'admin' and 'admin@gmail.com' for the admin login form
+    if ((username === "admin" || username === "admin@gmail.com") && password === "admin@123") {
+      const adminData = { email: "admin@gmail.com", name: "Admin" };
+      localStorage.setItem(USER_KEY, JSON.stringify(adminData));
       localStorage.setItem(ADMIN_KEY, "true");
+      localStorage.setItem("role", "admin");
+      localStorage.setItem("isLoggedIn", "true");
+      setUser(adminData);
       setIsAdmin(true);
+      setRole("admin");
       return true;
     }
     return false;
   }, []);
 
   const adminLogout = useCallback(() => {
-    localStorage.removeItem(ADMIN_KEY);
-    setIsAdmin(false);
-  }, []);
+    logout(); // Use centralized logout
+  }, [logout]);
 
   return (
-    <AuthContext.Provider value={{ user, isAdmin, login, logout, register, adminLogin, adminLogout }}>
+    <AuthContext.Provider value={{ user, isAdmin, role, setRole, setIsAdmin, setUser, login, logout, register, adminLogin, adminLogout }}>
       {children}
     </AuthContext.Provider>
   );

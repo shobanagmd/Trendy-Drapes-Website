@@ -45,7 +45,7 @@ const sizeOptions   = ["Free Size", "XS", "S", "M", "L", "XL", "XXL", "Custom"];
 
 const selectClass = "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
-export default function AddProductPage() {
+export default function AddProductPage({ onDisplayAll }) {
   const navigate = useNavigate();
   const { addProduct, clearAllProducts } = useLocalProducts();
   const { toast } = useToast();
@@ -145,7 +145,11 @@ export default function AddProductPage() {
 
     if (result.ok) {
       toast({ title: "✅ Product added!", description: `${product.name} has been added successfully.` });
-      navigate("/admin/products");
+      if (onDisplayAll) {
+        onDisplayAll();
+      } else {
+        navigate("/admin/products");
+      }
       return;
     }
 
@@ -182,13 +186,13 @@ export default function AddProductPage() {
   return (
     <div className="space-y-5 max-w-3xl">
       <div className="flex items-center gap-4">
-        <button onClick={() => navigate("/admin/products")} className="p-2 hover:bg-secondary rounded-lg">
-          <ArrowLeft className="h-5 w-5" />
-        </button>
         <div>
           <h1 className="text-lg font-semibold text-foreground">Add New Product</h1>
           <p className="text-sm text-muted-foreground">Create a new product listing for the store</p>
         </div>
+        <Button variant="outline" onClick={() => onDisplayAll ? onDisplayAll() : navigate("/admin/products")} className="ml-auto">
+          Display All Products
+        </Button>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">

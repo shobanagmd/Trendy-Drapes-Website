@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Search, Plus, Package, Star, Eye, Edit, Trash2 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { getAllProducts, deleteProduct } from "@/lib/productStorage";
+import AddProductPage from "./AddProductPage";
 
 const categoryStock = [
   { name: "Electronics", products: 3420, active: 3180 },
@@ -19,8 +20,8 @@ const statusStyle = {
 };
 
 export default function ProductsPage() {
-  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
+  const [showAddForm, setShowAddForm] = useState(true);
 
   useEffect(() => {
     // Load products from localStorage
@@ -68,6 +69,10 @@ export default function ProductsPage() {
     }
   };
 
+  if (showAddForm) {
+    return <AddProductPage onDisplayAll={() => { setShowAddForm(false); setProducts(getAllProducts()); }} />;
+  }
+
   return (
     <div className="space-y-5">
       <div className="page-header flex items-center justify-between">
@@ -75,7 +80,7 @@ export default function ProductsPage() {
           <h1 className="page-title">Products</h1>
           <p className="page-subtitle">Manage product catalog, inventory, and listings</p>
         </div>
-        <Button onClick={() => navigate("/admin/products/add")}><Plus className="h-4 w-4 mr-2" />Add Product</Button>
+        <Button onClick={() => setShowAddForm(true)}><Plus className="h-4 w-4 mr-2" />Add New Product</Button>
       </div>
 
       {/* Category Stock Chart */}

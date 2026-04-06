@@ -3,9 +3,18 @@ import { Minus, Plus, X, ShoppingBag } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useCart } from "@/contexts/CartContext";
+import { toast } from "sonner";
 
 const Cart = () => {
-  const { items, updateQuantity, removeFromCart, cartTotal } = useCart();
+  const { items, updateQuantity, removeFromCart, cartTotal, toggleWishlist, isInWishlist } = useCart();
+
+  const handleRemoveToWishlist = (productId) => {
+    if (!isInWishlist(productId)) {
+      toggleWishlist(productId);
+    }
+    removeFromCart(productId);
+    toast.success("Item moved to Wishlist");
+  };
 
   if (items.length === 0) {
     return (
@@ -44,7 +53,7 @@ const Cart = () => {
                       <Link to={`/product/${item.product.id}`} className="font-body text-sm text-foreground line-clamp-2 hover:text-accent transition-colors">
                         {item.product.name}
                       </Link>
-                      <button onClick={() => removeFromCart(item.product.id)} className="p-1 text-muted-foreground hover:text-foreground">
+                      <button onClick={() => handleRemoveToWishlist(item.product.id)} className="p-1 text-muted-foreground hover:text-foreground">
                         <X size={16} />
                       </button>
                     </div>
@@ -65,7 +74,7 @@ const Cart = () => {
                       </button>
                     </div>
                     <button
-                      onClick={() => removeFromCart(item.product.id)}
+                      onClick={() => handleRemoveToWishlist(item.product.id)}
                       className="mt-3 font-body text-xs text-destructive hover:text-destructive/80 underline underline-offset-2 transition-colors"
                     >
                       Remove from Cart
@@ -85,13 +94,17 @@ const Cart = () => {
                   <span className="text-foreground">₹{cartTotal.toLocaleString("en-IN")}</span>
                 </div>
                 <div className="flex justify-between text-sm font-body">
-                  <span className="text-muted-foreground">Shipping</span>
-                  <span className="text-accent font-medium">{cartTotal >= 4999 ? "Free" : "₹299"}</span>
+                  <span className="text-muted-foreground">Delivery Fee</span>
+                  <span className="text-foreground">₹49</span>
+                </div>
+                <div className="flex justify-between text-sm font-body">
+                  <span className="text-muted-foreground">Platform Fee</span>
+                  <span className="text-foreground">₹19</span>
                 </div>
               </div>
               <div className="flex justify-between font-body font-semibold text-foreground mb-6">
                 <span>Total</span>
-                <span>₹{(cartTotal + (cartTotal >= 4999 ? 0 : 299)).toLocaleString("en-IN")}</span>
+                <span>₹{(cartTotal + 49 + 19).toLocaleString("en-IN")}</span>
               </div>
               <Link to="/checkout" className="block w-full py-4 bg-accent text-accent-foreground font-body text-sm font-semibold tracking-wider uppercase hover:opacity-90 transition-opacity text-center">
                 Proceed to Checkout

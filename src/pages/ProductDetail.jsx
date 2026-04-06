@@ -18,6 +18,8 @@ const MOCK_REVIEWS = [
   { id: 3, name: "Meera K.",  rating: 5, text: "Perfect for my sister's wedding. Got so many compliments! Will definitely buy again.", date: "2025-10-10", media: [] },
 ];
 
+const isVideoMedia = (url) => typeof url === "string" && url.match(/\.(mp4|webm|ogg)$/i);
+
 /* ZOOM AND LENS COMPONENTS ... */
 // (I will retain from StarRating downwards to ProductDetail component)
 
@@ -199,14 +201,22 @@ const ImageModal = ({ images, startIndex, onClose }) => {
 
         {/* Centre: zoom + thumbnails + counter */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
-          <AmazonZoom src={images[active]} alt={`Product view ${active + 1}`} />
+          {isVideoMedia(images[active]) ? (
+             <video src={images[active]} autoPlay loop muted playsInline style={{ height: MAX_IMG_H, maxWidth: "80vw" }} />
+          ) : (
+             <AmazonZoom src={images[active]} alt={`Product view ${active + 1}`} />
+          )}
 
           {images.length > 1 && (
             <div style={{ display: "flex", gap: 8 }}>
               {images.map((img, i) => (
                 <button key={i} onClick={() => setActive(i)}
                   style={{ width: 52, height: 68, overflow: "hidden", flexShrink: 0, border: `2px solid ${active === i ? "#fff" : "rgba(255,255,255,0.22)"}`, borderRadius: 2, cursor: "pointer", background: "none", padding: 0 }}>
-                  <img src={img} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  {isVideoMedia(img) ? (
+                    <video src={img} className="w-full h-full object-cover" muted />
+                  ) : (
+                    <img src={img} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  )}
                 </button>
               ))}
             </div>
@@ -242,18 +252,77 @@ const ProductDetail = () => {
     return [...products, ...localProducts];
   }, [localProducts]);
 
-  const product = useMemo(() => allProducts.find((p) => p.id === id), [id, allProducts]);
+  const canonicalProduct = useMemo(() => allProducts.find((p) => p.id === id), [id, allProducts]);
 
-  // Scroll to top when product changes (e.g., clicking from Similar Products)
+  const similarProducts = useMemo(() => {
+    if (!canonicalProduct) return [];
+    return allProducts
+      .filter((p) => p.category === canonicalProduct.category && p.id !== canonicalProduct.id)
+      .slice(0, 4);
+  }, [canonicalProduct, allProducts]);
+
+  const variants = useMemo(() => {
+    if (!canonicalProduct) return [];
+    return [canonicalProduct, ...similarProducts].slice(0, 5);
+  }, [canonicalProduct, similarProducts]);
+
+  const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
+  
   useEffect(() => {
+    setSelectedVariantIndex(0);
     window.scrollTo(0, 0);
   }, [id]);
 
+  const product = variants[selectedVariantIndex] || canonicalProduct;
+
+  const handleVariantSelect = (index) => {
+    setSelectedVariantIndex(index);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   const [selectedImage, setSelectedImage] = useState(0);
+  useEffect(() => setSelectedImage(0), [selectedVariantIndex]);
+
+  const images = useMemo(() => {
+    if (!product) return [];
+    let baseImages = product.images?.length ? product.images : [product.image];
+    return baseImages.filter(Boolean);
+  }, [product]);
   const [selectedSize,  setSelectedSize]  = useState("Free Size");
   const [lightboxOpen,  setLightboxOpen]  = useState(false);
   const [isHovered,     setIsHovered]     = useState(false);
-  const [reviews,       setReviews]       = useState(MOCK_REVIEWS);
+  const [bgPos,         setBgPos]         = useState({ x: 50, y: 50 });
+  
+  const baseDynamicReviews = useMemo(() => {
+     if (!product) return [];
+     const seed = String(product.id).split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+     const names = ["Ayesha T.", "Priya S.", "Ananya R.", "Meera K.", "Shruti M.", "Neha G.", "Kavya P."];
+     const comments = [
+       "Absolutely gorgeous! The fabric quality is amazing and the color is even more vibrant in person.",
+       "Beautiful piece, received it well packed. Slightly different shade than expected but still lovely.",
+       "Perfect for my sister's wedding. Got so many compliments! Will definitely buy again.",
+       "The fitting is perfect and it feels very premium. Loved the detailing.",
+       "Great value for money. Looks just like the picture.",
+       "Stunning! My new favorite outfit for ethnic days."
+     ];
+     const numReviews = (seed % 3) + 2; 
+     const generated = [];
+     for(let i=0; i<numReviews; i++) {
+        generated.push({
+           id: seed * 10 + i,
+           name: names[(seed + i) % names.length],
+           rating: ((seed + i) % 2) === 0 ? 5 : 4,
+           text: comments[(seed + i * 2) % comments.length],
+           date: `2025-${String((seed % 12) + 1).padStart(2,'0')}-${String(((seed+i) % 28) + 1).padStart(2,'0')}`,
+           media: []
+        });
+     }
+     return generated;
+  }, [product]);
+
+  const [reviews,       setReviews]       = useState(baseDynamicReviews);
+  useEffect(() => setReviews(baseDynamicReviews), [baseDynamicReviews]);
+
   const [reviewText,    setReviewText]    = useState("");
   const [reviewRating,  setReviewRating]  = useState(5);
   
@@ -267,6 +336,13 @@ const ProductDetail = () => {
 
   const openLightbox  = useCallback(() => setLightboxOpen(true),  []);
   const closeLightbox = useCallback(() => setLightboxOpen(false), []);
+
+  const handleMouseMoveMainImage = useCallback((e) => {
+    const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - left) / width) * 100;
+    const y = ((e.clientY - top) / height) * 100;
+    setBgPos({ x, y });
+  }, []);
 
   const handleMediaUpload = (e) => {
     const files = Array.from(e.target.files);
@@ -290,14 +366,6 @@ const ProductDetail = () => {
     });
   };
 
-  // Similar products: same category, exclude current
-  const similarProducts = useMemo(() => {
-    if (!product) return [];
-    return allProducts
-      .filter((p) => p.category === product.category && p.id !== product.id)
-      .slice(0, 4);
-  }, [product, allProducts]);
-
   if (!product) {
     return (
       <div className="min-h-screen flex flex-col bg-background">
@@ -314,7 +382,6 @@ const ProductDetail = () => {
   }
 
   const wishlisted = isInWishlist(product.id);
-  const images     = product.images?.length ? product.images : [product.image];
   const avgRating  = reviews.length > 0
     ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)
     : "0.0";
@@ -360,67 +427,105 @@ const ProductDetail = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
 
           {/* ── Images panel ── */}
-          <div className="space-y-4">
-            {/* Main image: hover scales, click opens lightbox */}
-            <div
-              className="aspect-[3/4] overflow-hidden bg-secondary relative group cursor-zoom-in rounded-lg"
-              onMouseEnter={() => setIsHovered(true)}
-              onMouseLeave={() => setIsHovered(false)}
-              onClick={openLightbox}
-            >
-              <img
-                src={images[selectedImage]}
-                alt={product.name}
-                className="w-full h-full object-cover transition-transform duration-500"
-                style={{ transform: isHovered ? "scale(1.06)" : "scale(1)" }}
-              />
-
-              {/* Navigation arrows (only visible on hover) */}
-              <div
-                className="absolute inset-x-0 inset-y-1/2 flex justify-between px-4 -translate-y-1/2 pointer-events-none z-20"
-                style={{ opacity: isHovered ? 1 : 0, transition: "opacity 0.3s" }}
-              >
-                {images.length > 1 && (
-                  <button 
-                    className="w-10 h-10 rounded-full bg-background/90 backdrop-blur-md shadow-sm border border-border flex items-center justify-center text-foreground hover:bg-background hover:scale-105 pointer-events-auto transition-all cursor-pointer"
-                    onClick={(e) => { e.stopPropagation(); setSelectedImage((prev) => (prev - 1 + images.length) % images.length); }}
-                  >
-                    <ChevronLeft size={20} className="mr-0.5" />
-                  </button>
-                )}
-                {images.length > 1 && (
-                  <button 
-                    className="w-10 h-10 rounded-full bg-background/90 backdrop-blur-md shadow-sm border border-border flex items-center justify-center text-foreground hover:bg-background hover:scale-105 pointer-events-auto transition-all cursor-pointer"
-                    onClick={(e) => { e.stopPropagation(); setSelectedImage((prev) => (prev + 1) % images.length); }}
-                  >
-                    <ChevronRight size={20} className="ml-0.5" />
-                  </button>
-                )}
-              </div>
-
-              {/* Zoom indicator tooltip */}
-              <div
-                className="absolute bottom-5 left-1/2 -translate-x-1/2 flex items-center justify-center transition-opacity duration-300 pointer-events-none z-10"
-                style={{ opacity: isHovered && images.length === 1 ? 1 : 0 }}
-              >
-                <div className="flex items-center gap-2 px-4 py-2 bg-background/90 rounded-full backdrop-blur-sm shadow-sm border border-border">
-                  <ZoomIn size={14} className="text-foreground" />
-                  <span className="font-body text-[10px] font-bold text-foreground tracking-widest uppercase">Zoom</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Thumbnails */}
+          <div className="flex flex-col md:flex-row gap-4 lg:gap-6">
+            
+            {/* Vertical Thumbnails (Hidden on purely mobile, visible md and up) */}
             {images.length > 1 && (
-              <div className="flex flex-wrap gap-2.5 mt-2">
+              <div className="hidden md:flex flex-col gap-3 w-16 lg:w-20 shrink-0">
                 {images.slice(0, 5).map((img, i) => (
-                  <button key={i} onClick={() => setSelectedImage(i)}
-                    className={`relative w-16 h-20 sm:w-14 sm:h-20 lg:w-[4.5rem] lg:h-24 overflow-hidden rounded-md transition-all duration-300 border-2 cursor-pointer ${selectedImage === i ? "border-primary ring-2 ring-primary/20 shadow-md opacity-100 -translate-y-1" : "border-transparent opacity-60 hover:opacity-100 hover:border-primary/40 text-muted-foreground"}`}>
-                    <img src={img} alt={`Variant ${i+1}`} className="w-full h-full object-cover" />
+                  <button key={`v-thumb-${i}`} onClick={() => setSelectedImage(i)}
+                    className={`relative w-full aspect-[3/4] overflow-hidden rounded-md transition-all duration-300 border-2 cursor-pointer ${selectedImage === i ? "border-primary opacity-100 shadow-sm shadow-primary/10" : "border-transparent opacity-50 hover:opacity-100 text-muted-foreground hover:border-border"}`}>
+                    {isVideoMedia(img) ? (
+                      <video src={img} className="w-full h-full object-cover" muted />
+                    ) : (
+                      <img src={img} alt={`Thumbnail ${i+1}`} className="w-full h-full object-cover" />
+                    )}
                   </button>
                 ))}
               </div>
             )}
+
+            <div className="flex-1 space-y-6 lg:space-y-8">
+              {/* Main image: hover scales, click opens lightbox */}
+              <div
+                className={`aspect-[4/5] md:aspect-[3/4] overflow-hidden bg-secondary relative group ${!isVideoMedia(images[selectedImage]) ? "cursor-zoom-in" : ""} rounded-lg ${(isHovered && !isVideoMedia(images[selectedImage])) ? 'bg-cover bg-no-repeat' : ''}`}
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => setIsHovered(false)}
+                onMouseMove={handleMouseMoveMainImage}
+                onClick={openLightbox}
+                style={(isHovered && images[selectedImage] && !isVideoMedia(images[selectedImage])) ? {
+                  backgroundImage: `url(${images[selectedImage]})`,
+                  backgroundPosition: `${bgPos.x}% ${bgPos.y}%`,
+                  backgroundSize: '200%'
+                } : {}}
+              >
+                {isVideoMedia(images[selectedImage]) ? (
+                  <video src={images[selectedImage]} className="w-full h-full object-cover" autoPlay loop muted playsInline />
+                ) : (
+                  <img
+                    src={images[selectedImage]}
+                    alt={product.name}
+                    className="w-full h-full object-cover transition-opacity duration-300"
+                    style={{ opacity: isHovered ? 0 : 1 }}
+                  />
+                )}
+
+                {/* Navigation arrows (only visible on hover) */}
+                <div
+                  className="absolute inset-x-0 inset-y-1/2 flex justify-between px-4 -translate-y-1/2 pointer-events-none z-20"
+                  style={{ opacity: isHovered ? 1 : 0, transition: "opacity 0.3s" }}
+                >
+                  {images.length > 1 && (
+                    <button 
+                      className="w-10 h-10 rounded-full bg-background/90 backdrop-blur-md shadow-sm border border-border flex items-center justify-center text-foreground hover:bg-background hover:scale-105 pointer-events-auto transition-all cursor-pointer"
+                      onClick={(e) => { e.stopPropagation(); setSelectedImage((prev) => (prev - 1 + images.length) % images.length); }}
+                    >
+                      <ChevronLeft size={20} className="mr-0.5" />
+                    </button>
+                  )}
+                  {images.length > 1 && (
+                    <button 
+                      className="w-10 h-10 rounded-full bg-background/90 backdrop-blur-md shadow-sm border border-border flex items-center justify-center text-foreground hover:bg-background hover:scale-105 pointer-events-auto transition-all cursor-pointer"
+                      onClick={(e) => { e.stopPropagation(); setSelectedImage((prev) => (prev + 1) % images.length); }}
+                    >
+                      <ChevronRight size={20} className="ml-0.5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Zoom indicator tooltip */}
+                <div
+                  className="absolute bottom-5 left-1/2 -translate-x-1/2 flex items-center justify-center transition-opacity duration-300 pointer-events-none z-10"
+                  style={{ opacity: isHovered && images.length === 1 ? 1 : 0 }}
+                >
+                  <div className="flex items-center gap-2 px-4 py-2 bg-background/90 rounded-full backdrop-blur-sm shadow-sm border border-border">
+                    <ZoomIn size={14} className="text-foreground" />
+                    <span className="font-body text-[10px] font-bold text-foreground tracking-widest uppercase">Zoom</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Color Variants */}
+              {variants.length > 1 && (
+                <div className="pt-2">
+                  <p className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold mb-3">Color Variants</p>
+                  <div className="flex flex-wrap gap-4">
+                    {variants.map((v, i) => (
+                      <button key={`c-thumb-${i}`} onClick={() => handleVariantSelect(i)}
+                        className={`relative w-12 h-12 rounded-full overflow-hidden transition-all duration-300 border-2 shadow-sm cursor-pointer p-0.5 outline-none ${selectedVariantIndex === i ? "border-primary ring-2 ring-primary/20 scale-110" : "border-border opacity-70 hover:opacity-100 hover:border-foreground"}`}>
+                        <div className="w-full h-full rounded-full overflow-hidden">
+                          {isVideoMedia(v.images?.[0] || v.image) ? (
+                            <video src={v.images?.[0] || v.image} className="w-full h-full object-cover" muted />
+                          ) : (
+                            <img src={v.images?.[0] || v.image} alt={v.color || `Variant ${i+1}`} className="w-full h-full object-cover" />
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* ── Details panel ── */}

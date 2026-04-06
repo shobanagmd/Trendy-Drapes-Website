@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -8,7 +7,10 @@ import { Mail, Lock, User as UserIcon } from "lucide-react";
 import loginBgImage from "@/assets/login-bg.webp";
 
 const ADMIN_EMAIL = "admin@gmail.com";
-const ADMIN_PASSWORD = "admin123";
+const ADMIN_PASSWORD = "admin@123";
+
+const SELLER_EMAIL = "seller@gmail.com";
+const SELLER_PASSWORD = "seller@123";
 
 const Login = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -26,7 +28,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
-  const { login, register, adminLogin } = useAuth();
+  const { login, register, adminLogin, setRole, setIsAdmin, setUser } = useAuth();
 
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
@@ -38,24 +40,26 @@ const Login = () => {
       return;
     }
 
-    if (loginEmail === ADMIN_EMAIL && loginPassword === ADMIN_PASSWORD) {
-      register(loginEmail, loginPassword, "Admin");
-      login(loginEmail, loginPassword);
-      adminLogin("admin", "admin123");
-      toast.success("Welcome, Admin!");
-      navigate("/admin");
-      setLoading(false);
-      return;
-    }
-
     const result = login(loginEmail, loginPassword);
+    
     if (!result.success) {
       toast.error(result.message);
       setLoading(false);
       return;
     }
-    toast.success("Welcome back!");
-    navigate("/");
+
+    // Role-based navigation
+    if (result.role === "admin") {
+      toast.success("Welcome, Admin!");
+      navigate("/admin");
+    } else if (result.role === "seller") {
+      toast.success("Welcome, Seller!");
+      navigate("/seller/dashboard");
+    } else {
+      toast.success("Welcome back!");
+      navigate("/");
+    }
+    
     setLoading(false);
   };
 
@@ -98,10 +102,6 @@ const Login = () => {
 
   return (
     <div className="h-screen w-full flex flex-col bg-background overflow-hidden relative">
-      <div className="shrink-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border relative">
-        <Navbar />
-      </div>
-
       <div className="flex-1 w-full relative flex overflow-hidden">
         
         {/* ======================= DESKTOP SPLIT SCREEN ======================= */}
@@ -435,7 +435,7 @@ const Login = () => {
             )}
             
             <div className="mt-8 text-center text-[10px] uppercase tracking-widest font-body text-muted-foreground/50 border-t border-border pt-4">
-              Admin? Use admin@gmail.com / admin123
+              Admin: admin@gmail.com/admin@123 | Seller: seller@gmail.com/seller@123
             </div>
           </div>
           
