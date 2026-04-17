@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Heart, ShoppingBag, Trash2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import { formatImageUrl } from "@/utils/imageUtils";
 import { useCart } from "@/contexts/CartContext";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { useLocalProducts } from "@/hooks/useLocalProducts";
@@ -51,7 +52,7 @@ const ProductCard = ({ product }) => {
         {/* Image container */}
         <div className="relative overflow-hidden aspect-[3/4] bg-secondary">
           <img
-            src={hovered && product.images?.[1] ? product.images[1] : (product.images?.[0] || product.image)}
+            src={formatImageUrl(hovered && product.images?.[1] ? product.images[1] : (product.images?.[0] || product.image))}
             alt={product.name}
             className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
             loading="lazy"
@@ -108,8 +109,8 @@ const ProductCard = ({ product }) => {
             )}
           </div>
           <button onClick={handleAddToCart}
-            className="w-full mt-2 py-2.5 bg-primary text-primary-foreground font-body text-xs tracking-wider uppercase hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
-            <ShoppingBag size={14} /> Add to Cart
+            className="w-full mt-2 py-2.5 bg-primary text-white font-display text-[9px] font-black tracking-[0.2em] uppercase hover:opacity-90 transition-opacity flex items-center justify-center gap-2 rounded-md">
+            <ShoppingBag size={12} /> Add to Cart
           </button>
         </div>
       </Link>

@@ -3,21 +3,15 @@ import { Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ProductCard from "@/components/ProductCard";
-import { products } from "@/data/products";
+/* import { products } from "@/data/products"; */
 import { useLocalProducts } from "@/hooks/useLocalProducts";
 
 const Sales = () => {
   const { localProducts } = useLocalProducts();
 
-  // Merge static + admin-added products
+  // Use API products sorted by discount
   const allProducts = useMemo(() => {
-    const staticIds = new Set(products.map((p) => p.id));
-    const merged = [
-      ...products,
-      ...localProducts.filter((p) => !staticIds.has(p.id)),
-    ];
-    // Sort by discount descending — highest discount first
-    return merged.sort((a, b) => (b.discount || 0) - (a.discount || 0));
+    return [...localProducts].sort((a, b) => (b.discount || 0) - (a.discount || 0));
   }, [localProducts]);
 
   // Stats for the banner

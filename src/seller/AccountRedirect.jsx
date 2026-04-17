@@ -17,15 +17,20 @@
 
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function AccountRedirect() {
   const navigate = useNavigate();
+  const { user, role } = useAuth();
 
   useEffect(() => {
-    // Navigate to seller auth (or straight to dashboard if already logged in)
-    const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
-    navigate(isLoggedIn ? "/seller/dashboard" : "/seller", { replace: true });
-  }, [navigate]);
+    if (user && role === "seller") {
+      const onboardingDone = user.onboardingCompleted === true;
+      navigate(onboardingDone ? "/seller/dashboard" : "/seller/onboarding", { replace: true });
+    } else {
+      navigate("/seller", { replace: true });
+    }
+  }, [user, role, navigate]);
 
   // Nothing to render; redirect fires immediately
   return null;

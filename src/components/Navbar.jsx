@@ -2,7 +2,10 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { Link } from "react-router-dom";
 import { Search, Heart, ShoppingBag, User, Menu, X } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
-import { products } from "@/data/products";
+/* import { products } from "@/data/products"; */
+import { useLocalProducts } from "@/hooks/useLocalProducts";
+import { formatImageUrl } from "@/utils/imageUtils";
+
 
 const navLinks = [
   { label: "Home", to: "/" },
@@ -57,7 +60,28 @@ const AnnouncementBar = () => {
 
 const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      
+      // Only hide after scrolling down more than 150px
+      if (currentScrollY > lastScrollY && currentScrollY > 150) {
+        setIsVisible(false);
+      } else {
+        setIsVisible(true);
+      }
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [lastScrollY]);
+
   const { cartCount, wishlistCount } = useCart();
+  const { localProducts } = useLocalProducts();
 
   const [query, setQuery] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
@@ -76,7 +100,8 @@ const Navbar = () => {
   const results = useMemo(() => {
     if (!query.trim()) return [];
     const q = query.toLowerCase();
-    return products.filter(
+    const all = localProducts;
+    return all.filter(
       (p) =>
         p.name.toLowerCase().includes(q) ||
         (p.fabric && p.fabric.toLowerCase().includes(q)) ||
@@ -84,11 +109,11 @@ const Navbar = () => {
         (p.subCategory && p.subCategory.toLowerCase().includes(q)) ||
         (p.work && p.work.toLowerCase().includes(q))
     );
-  }, [query]);
+  }, [query, localProducts]);
 
   return (
     <>
-      <header className="sticky top-0 z-50 bg-card border-b border-border">
+      <header className={`fixed top-0 left-0 right-0 z-[100] bg-card border-b border-border transition-transform duration-500 ease-in-out ${isVisible ? 'translate-y-0' : '-translate-y-full'}`}>
         {/* ── Rotating announcement bar ── */}
         <AnnouncementBar />
 
@@ -154,7 +179,7 @@ const Navbar = () => {
                         >
                           <div className="w-12 h-16 rounded-md overflow-hidden bg-secondary flex-shrink-0 border border-border/50">
                             <img
-                              src={product.images?.[0] || product.image}
+                              src={formatImageUrl(product.images?.[0] || product.image)}
                               alt={product.name}
                               className="w-full h-full object-cover transition-transform group-hover:scale-105"
                             />
@@ -232,6 +257,8 @@ const Navbar = () => {
           </nav>
         )}
       </header>
+      {/* Spacer to prevent content from jumping under fixed header */}
+      <div className="h-[120px] lg:h-[135px]"></div>
     </>
   );
 };

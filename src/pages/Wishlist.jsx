@@ -1,16 +1,27 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Heart, ShoppingBag } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useCart } from "@/contexts/CartContext";
-import { products } from "@/data/products";
+/* import { products } from "@/data/products"; */
 import { useLocalProducts } from "@/hooks/useLocalProducts";
 import { toast } from "sonner";
 
 const Wishlist = () => {
   const { wishlist, toggleWishlist, addToCart } = useCart();
-  const { localProducts } = useLocalProducts();
-  const allProducts = [...products, ...localProducts];
+  const { localProducts: allProducts } = useLocalProducts();
+  const [expandedItems, setExpandedItems] = useState({});
+
+  const toggleExpand = (e, productId) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setExpandedItems((prev) => ({
+      ...prev,
+      [productId]: !prev[productId],
+    }));
+  };
+
   const wishlistProducts = allProducts.filter((p) => wishlist.includes(p.id));
 
   if (wishlistProducts.length === 0) {
@@ -34,8 +45,8 @@ const Wishlist = () => {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
-      <div className="container mx-auto px-4 py-8">
-        <h2 className="font-display text-3xl font-semibold text-foreground mb-8">My Wishlist ({wishlistProducts.length})</h2>
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
+        <h2 className="font-display text-xl font-black text-primary uppercase tracking-widest mb-8 border-b border-border pb-4">My Wishlist ({wishlistProducts.length})</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 lg:gap-7">
           {wishlistProducts.map((product) => (
             <div key={product.id} className="group">
@@ -50,7 +61,20 @@ const Wishlist = () => {
                   </button>
                 </div>
                 <div className="pt-4 px-1 space-y-2">
-                  <h3 className="font-body text-sm line-clamp-2 text-foreground">{product.name}</h3>
+                  <div className="flex items-start gap-2">
+                    <h3 className={`font-body text-base text-foreground transition-all duration-300 ${expandedItems[product.id] ? "whitespace-normal overflow-visible" : "truncate"}`}>
+                      {product.name}
+                    </h3>
+                    {product.name?.length > 45 && (
+                      <button
+                        type="button"
+                        onClick={(e) => toggleExpand(e, product.id)}
+                        className="text-[10px] text-primary hover:text-primary/80 font-bold uppercase tracking-tighter shrink-0 mt-1"
+                      >
+                        {expandedItems[product.id] ? "Less" : "More"}
+                      </button>
+                    )}
+                  </div>
                   <div className="flex items-center gap-2">
                     <span className="font-body font-semibold text-sm text-foreground">₹{product.price.toLocaleString("en-IN")}</span>
                     <span className="font-body text-xs text-muted-foreground line-through">₹{product.originalPrice.toLocaleString("en-IN")}</span>
@@ -66,9 +90,9 @@ const Wishlist = () => {
                   toggleWishlist(product.id);
                   toast.success("Moved to cart!");
                 }}
-                className="w-full mt-2 py-2.5 border border-border text-foreground font-body text-xs tracking-wider uppercase hover:bg-primary hover:text-primary-foreground transition-colors flex items-center justify-center gap-2"
+                className="w-full mt-2 py-3 border border-border text-primary font-display text-[9px] font-black tracking-[0.2em] uppercase hover:bg-primary hover:text-white transition-all duration-300 flex items-center justify-center gap-2 rounded-lg"
               >
-                <ShoppingBag size={14} /> Add to Cart
+                <ShoppingBag size={12} /> Add to Cart
               </button>
             </div>
           ))}

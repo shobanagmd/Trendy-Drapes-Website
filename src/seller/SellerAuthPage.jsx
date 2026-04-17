@@ -1,620 +1,649 @@
 /**
  * ─────────────────────────────────────────────────────────────────
- *  SellerAuthPage.jsx  —  /seller
+ *  SellerAuthPage.jsx  —  /seller  (UPDATED for Trendy Drapes)
  *
- *  NEW FILE. Does not modify any existing component.
- *  Renders the Login / Register toggle for the Seller Dashboard.
- *  On success → navigates to /seller/dashboard
- *  Uses localStorage keys: "isLoggedIn", "user"  (shared with both apps)
+ *  REPLACE the existing file at: src/seller/SellerAuthPage.jsx
+ *
+ *  Changes from original:
+ *   • Brand renamed: "Aurum" → "Trendy Drapes"
+ *   • Dark gold palette → Warm cream/ivory light-mode palette
+ *   • Fonts kept: Cormorant Garamond + now uses Jost (from index.css)
+ *   • After login: checks td_onboarding_done → routes to onboarding or dashboard
+ *   • After register: sets td_onboarding_done = false → routes to onboarding
+ *   • Stats updated to Trendy Drapes context (sarees / fabric)
  * ─────────────────────────────────────────────────────────────────
  */
 
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
+import { apiFetch } from "@/utils/api";
 
-/* ── Design tokens: matches Aurum jewellery brand palette ───────── */
+/* ── Trendy Drapes brand palette ─────────────────────────────── */
 const G = {
-  gold: "#C9A84C",
-  goldLight: "#E8C97A",
-  goldDim: "rgba(201,168,76,0.18)",
-  bg: "#080706",
-  card: "#111009",
-  border: "rgba(201,168,76,0.14)",
-  borderFocus: "rgba(201,168,76,0.55)",
-  text: "#F0EBE0",
-  muted: "#7A6E5E",
-  error: "#D46060",
-  errorBg: "rgba(212,96,96,0.08)",
-  success: "#6BB88A",
-  successBg: "rgba(107,184,138,0.08)",
+  // Backgrounds
+  bg:          "#FAF8F4",
+  bgAlt:       "#F5F1EA",
+  surface:     "#FFFFFF",
+  panel:       "#F0EBE0",
+
+  // Gold
+  gold:        "#C9A84C",
+  goldLight:   "#E2C97A",
+  goldDark:    "#A07C2A",
+  goldBg:      "rgba(201,168,76,0.09)",
+  goldBorder:  "rgba(201,168,76,0.32)",
+  goldFocus:   "rgba(201,168,76,0.55)",
+
+  // Text
+  text:        "#1C1A16",
+  textMid:     "#4A4438",
+  muted:       "#9A8E7C",
+
+  // Borders
+  border:      "#E8E0D0",
+  borderDark:  "#D4C8B0",
+
+  // States
+  error:       "#C0392B",
+  errorBg:     "rgba(192,57,43,0.06)",
+  success:     "#2E7D52",
+  successBg:   "rgba(46,125,82,0.07)",
 };
 
 const css = `
-  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:wght@300;400;500;600&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=Jost:wght@300;400;500;600;700&display=swap');
 
-  .seller-auth-root {
+  .td-auth-root {
     min-height: 100vh;
     background: ${G.bg};
     display: flex;
     align-items: stretch;
-    font-family: 'DM Sans', 'Segoe UI', sans-serif;
+    font-family: 'Jost', 'Segoe UI', sans-serif;
     overflow: hidden;
   }
 
-  /* ── Left decorative panel ── */
-  .seller-auth-panel {
+  /* ── Left panel ── */
+  .td-auth-panel {
     flex: 1;
     display: flex;
     flex-direction: column;
     justify-content: center;
     padding: 4rem 5rem;
     position: relative;
-    background: linear-gradient(160deg, #0E0B06 0%, #080706 60%, #0A0806 100%);
+    background: linear-gradient(160deg, #EDE8DC 0%, #E8E1D2 50%, #DDD4BF 100%);
     border-right: 1px solid ${G.border};
+    overflow: hidden;
   }
 
-  .seller-auth-panel::before {
+  .td-auth-panel::before {
     content: '';
     position: absolute;
     inset: 0;
     background:
-      radial-gradient(ellipse 600px 500px at 20% 40%, rgba(201,168,76,0.05) 0%, transparent 70%),
-      radial-gradient(ellipse 400px 300px at 80% 80%, rgba(201,168,76,0.03) 0%, transparent 70%);
+      radial-gradient(ellipse 500px 400px at 15% 30%, rgba(201,168,76,0.12) 0%, transparent 70%),
+      radial-gradient(ellipse 350px 300px at 85% 75%, rgba(201,168,76,0.08) 0%, transparent 70%);
     pointer-events: none;
   }
 
-  .seller-auth-panel-logo {
+  /* Decorative fabric pattern */
+  .td-auth-panel::after {
+    content: '';
+    position: absolute;
+    right: -60px; top: 50%;
+    transform: translateY(-50%);
+    width: 280px; height: 280px;
+    border-radius: 50%;
+    border: 1px solid rgba(201,168,76,0.15);
+    pointer-events: none;
+  }
+
+  .td-auth-panel-logo {
     font-family: 'Cormorant Garamond', Georgia, serif;
-    font-size: 2.6rem;
-    font-weight: 300;
+    font-size: 2.8rem;
+    font-weight: 600;
+    color: ${G.text};
+    letter-spacing: 0.02em;
+    line-height: 1;
+    margin-bottom: 0.2rem;
+    position: relative;
+  }
+
+  .td-auth-panel-logo em {
     font-style: italic;
     color: ${G.gold};
-    letter-spacing: 0.06em;
-    margin-bottom: 0.25rem;
-    line-height: 1;
   }
 
-  .seller-auth-panel-sub {
-    font-size: 0.62rem;
-    letter-spacing: 0.35em;
+  .td-auth-panel-sub {
+    font-size: 0.6rem;
+    letter-spacing: 0.32em;
     text-transform: uppercase;
     color: ${G.muted};
-    margin-bottom: 4rem;
+    margin-bottom: 3.5rem;
+    position: relative;
+    font-weight: 500;
   }
 
-  .seller-auth-panel-headline {
+  .td-auth-panel-headline {
     font-family: 'Cormorant Garamond', Georgia, serif;
-    font-size: clamp(2.2rem, 4vw, 3.5rem);
-    font-weight: 300;
+    font-size: clamp(2.2rem, 3.8vw, 3.2rem);
+    font-weight: 400;
     color: ${G.text};
-    line-height: 1.15;
+    line-height: 1.18;
     letter-spacing: 0.01em;
     margin-bottom: 1.25rem;
+    position: relative;
   }
 
-  .seller-auth-panel-headline em {
+  .td-auth-panel-headline em {
     font-style: italic;
     color: ${G.gold};
   }
 
-  .seller-auth-panel-body {
+  .td-auth-panel-body {
     font-size: 0.82rem;
     color: ${G.muted};
-    line-height: 1.8;
-    max-width: 340px;
-    margin-bottom: 3rem;
-    letter-spacing: 0.03em;
+    line-height: 1.7;
+    max-width: 380px;
+    margin-bottom: 2.5rem;
+    position: relative;
+    letter-spacing: 0.02em;
   }
 
-  .seller-auth-panel-stats {
+  .td-auth-panel-line {
+    width: 48px;
+    height: 2px;
+    background: linear-gradient(90deg, ${G.gold}, ${G.goldLight});
+    margin-bottom: 2.5rem;
+    position: relative;
+  }
+
+  .td-auth-panel-stats {
     display: flex;
     gap: 2.5rem;
+    position: relative;
   }
 
-  .seller-auth-stat-number {
+  .td-auth-stat-number {
     font-family: 'Cormorant Garamond', Georgia, serif;
     font-size: 1.9rem;
-    font-weight: 300;
-    color: ${G.gold};
+    font-weight: 600;
+    color: ${G.text};
     line-height: 1;
+    margin-bottom: 0.25rem;
   }
 
-  .seller-auth-stat-label {
-    font-size: 0.6rem;
-    letter-spacing: 0.18em;
+  .td-auth-stat-label {
+    font-size: 0.62rem;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
     color: ${G.muted};
-    margin-top: 0.3rem;
-  }
-
-  .seller-auth-panel-line {
-    position: absolute;
-    bottom: 3rem;
-    left: 5rem;
-    right: 5rem;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, ${G.goldDim}, transparent);
+    font-weight: 500;
   }
 
   /* ── Right form panel ── */
-  .seller-auth-form-wrap {
+  .td-auth-form-wrap {
     width: 480px;
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    padding: 3.5rem 3.5rem;
-    background: ${G.card};
-    position: relative;
+    padding: 3rem 3.5rem;
+    background: ${G.surface};
+    overflow-y: auto;
   }
 
-  .seller-auth-form-wrap::before {
-    content: '';
-    position: absolute;
-    top: 0; bottom: 0; left: 0;
-    width: 1px;
-    background: linear-gradient(180deg, transparent 0%, ${G.goldDim} 30%, ${G.goldDim} 70%, transparent 100%);
-  }
-
-  /* ── Tab toggle ── */
-  .seller-auth-tabs {
-    display: flex;
-    background: rgba(255,255,255,0.03);
-    border: 1px solid ${G.border};
-    border-radius: 6px;
-    padding: 3px;
-    margin-bottom: 2.25rem;
-  }
-
-  .seller-auth-tab {
-    flex: 1;
-    padding: 0.65rem 0;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 0.72rem;
-    font-weight: 600;
-    letter-spacing: 0.12em;
+  .td-auth-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
+    color: ${G.muted};
+    text-decoration: none;
+    transition: color 0.18s;
+    font-weight: 500;
+  }
+  .td-auth-back:hover { color: ${G.gold}; }
+
+  .td-auth-tabs {
+    display: flex;
+    gap: 0.4rem;
+    background: ${G.bgAlt};
+    border-radius: 6px;
+    padding: 4px;
+    margin-bottom: 2rem;
+    border: 1px solid ${G.border};
+  }
+
+  .td-auth-tab {
+    flex: 1;
+    padding: 0.6rem;
     border: none;
     border-radius: 4px;
-    cursor: pointer;
-    transition: all 0.22s ease;
     background: transparent;
-    color: ${G.muted};
-  }
-
-  .seller-auth-tab--active {
-    background: linear-gradient(135deg, ${G.gold}, ${G.goldLight});
-    color: #0A0A0A;
-    box-shadow: 0 2px 10px rgba(201,168,76,0.25);
-  }
-
-  /* ── Form heading ── */
-  .seller-auth-form-title {
-    font-family: 'Cormorant Garamond', Georgia, serif;
-    font-size: 1.75rem;
-    font-weight: 300;
-    color: ${G.text};
-    letter-spacing: 0.02em;
-    margin-bottom: 0.35rem;
-    line-height: 1.2;
-  }
-
-  .seller-auth-form-hint {
-    font-size: 0.72rem;
-    color: ${G.muted};
-    letter-spacing: 0.05em;
-    margin-bottom: 1.75rem;
-  }
-
-  /* ── Alert banners ── */
-  .seller-auth-alert {
-    border-radius: 6px;
-    padding: 0.7rem 1rem;
+    font-family: 'Jost', sans-serif;
     font-size: 0.75rem;
-    line-height: 1.5;
-    margin-bottom: 1.25rem;
-    display: flex;
-    align-items: flex-start;
-    gap: 0.5rem;
-    letter-spacing: 0.03em;
-  }
-
-  .seller-auth-alert--error {
-    background: ${G.errorBg};
-    border: 1px solid rgba(212,96,96,0.25);
-    color: ${G.error};
-  }
-
-  .seller-auth-alert--success {
-    background: ${G.successBg};
-    border: 1px solid rgba(107,184,138,0.25);
-    color: ${G.success};
-  }
-
-  /* ── Input fields ── */
-  .seller-field {
-    margin-bottom: 1.15rem;
-  }
-
-  .seller-field-label {
-    display: block;
-    font-size: 0.62rem;
     font-weight: 600;
-    letter-spacing: 0.18em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     color: ${G.muted};
-    margin-bottom: 0.45rem;
+    cursor: pointer;
+    transition: all 0.2s;
   }
 
-  .seller-field-wrap {
-    position: relative;
+  .td-auth-tab--active {
+    background: ${G.text};
+    color: ${G.bg};
+    box-shadow: 0 2px 8px rgba(28,26,22,0.12);
   }
 
-  .seller-field-input {
-    width: 100%;
-    background: rgba(255,255,255,0.03);
-    border: 1px solid ${G.border};
-    border-radius: 6px;
-    padding: 0.7rem 0.9rem;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 0.82rem;
+  .td-auth-form-title {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 1.8rem;
+    font-weight: 500;
     color: ${G.text};
-    outline: none;
-    transition: border-color 0.2s, box-shadow 0.2s;
-    box-sizing: border-box;
-    letter-spacing: 0.03em;
+    margin-bottom: 0.3rem;
+    letter-spacing: 0.01em;
   }
 
-  .seller-field-input::placeholder { color: ${G.muted}; }
-
-  .seller-field-input:focus {
-    border-color: ${G.gold};
-    box-shadow: 0 0 0 3px rgba(201,168,76,0.1);
-    background: rgba(201,168,76,0.02);
-  }
-
-  .seller-field-input--error {
-    border-color: rgba(212,96,96,0.5) !important;
-  }
-
-  .seller-field-error {
-    font-size: 0.68rem;
-    color: ${G.error};
-    margin-top: 0.35rem;
+  .td-auth-form-hint {
+    font-size: 0.75rem;
+    color: ${G.muted};
+    margin-bottom: 1.75rem;
     letter-spacing: 0.04em;
   }
 
-  .seller-field-eye {
-    position: absolute;
-    right: 0.8rem;
-    top: 50%;
-    transform: translateY(-50%);
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: ${G.muted};
-    font-size: 0.7rem;
-    letter-spacing: 0.08em;
-    padding: 0;
-    font-family: inherit;
-    transition: color 0.2s;
-  }
-  .seller-field-eye:hover { color: ${G.gold}; }
+  .td-auth-field { margin-bottom: 1.1rem; }
 
-  /* ── Submit button ── */
-  .seller-auth-submit {
-    width: 100%;
-    margin-top: 0.5rem;
-    padding: 0.85rem;
-    background: linear-gradient(135deg, ${G.gold} 0%, ${G.goldLight} 100%);
-    color: #0A0A0A;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.2em;
+  .td-auth-label {
+    display: block;
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
+    color: ${G.textMid};
+    margin-bottom: 0.4rem;
+  }
+
+  .td-auth-input {
+    width: 100%;
+    background: ${G.bg};
+    border: 1.5px solid ${G.border};
+    border-radius: 6px;
+    padding: 0.72rem 0.9rem;
+    font-family: 'Jost', sans-serif;
+    font-size: 0.84rem;
+    color: ${G.text};
+    outline: none;
+    transition: border-color 0.18s, box-shadow 0.18s;
+  }
+  .td-auth-input:hover { border-color: ${G.borderDark}; }
+  .td-auth-input:focus {
+    border-color: ${G.gold};
+    box-shadow: 0 0 0 3px ${G.goldBg};
+  }
+  .td-auth-input::placeholder { color: rgba(154,142,124,0.55); }
+  .td-auth-input--error {
+    border-color: rgba(192,57,43,0.4);
+    background: ${G.errorBg};
+  }
+
+  .td-auth-err {
+    font-size: 0.65rem;
+    color: ${G.error};
+    margin-top: 0.3rem;
+    letter-spacing: 0.04em;
+  }
+
+  .td-auth-alert {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.75rem 0.9rem;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    margin-bottom: 1.1rem;
+    letter-spacing: 0.02em;
+  }
+  .td-auth-alert--error {
+    background: ${G.errorBg};
+    border: 1px solid rgba(192,57,43,0.25);
+    color: ${G.error};
+  }
+  .td-auth-alert--success {
+    background: ${G.successBg};
+    border: 1px solid rgba(46,125,82,0.25);
+    color: ${G.success};
+  }
+
+  .td-auth-submit {
+    width: 100%;
+    margin-top: 0.6rem;
+    padding: 0.85rem;
+    background: ${G.text};
+    color: ${G.bg};
     border: none;
     border-radius: 6px;
+    font-family: 'Jost', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
     cursor: pointer;
-    transition: opacity 0.18s, transform 0.18s, box-shadow 0.18s;
-    box-shadow: 0 4px 18px rgba(201,168,76,0.2);
+    transition: all 0.2s;
   }
-
-  .seller-auth-submit:hover {
-    opacity: 0.9;
+  .td-auth-submit:hover {
+    background: #2E2B24;
     transform: translateY(-1px);
-    box-shadow: 0 6px 24px rgba(201,168,76,0.3);
+    box-shadow: 0 6px 20px rgba(28,26,22,0.18);
   }
+  .td-auth-submit:active { transform: translateY(0); }
+  .td-auth-submit:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
 
-  .seller-auth-submit:active { transform: translateY(0); }
-
-  .seller-auth-submit:disabled {
-    opacity: 0.55;
-    cursor: not-allowed;
-    transform: none;
-  }
-
-  /* ── Divider ── */
-  .seller-auth-divider {
+  .td-auth-divider {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    margin: 1.5rem 0;
+    margin: 1.25rem 0;
+    color: ${G.muted};
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
   }
-  .seller-auth-divider::before,
-  .seller-auth-divider::after {
+  .td-auth-divider::before,
+  .td-auth-divider::after {
     content: '';
     flex: 1;
     height: 1px;
     background: ${G.border};
   }
-  .seller-auth-divider span {
-    font-size: 0.62rem;
-    color: ${G.muted};
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-  }
 
-  /* ── Back to shop link ── */
-  .seller-auth-back {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    font-size: 0.68rem;
-    color: ${G.muted};
-    text-decoration: none;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    transition: color 0.2s;
-  }
-  .seller-auth-back:hover { color: ${G.gold}; }
-
-  /* ── Mobile ── */
-  @media (max-width: 820px) {
-    .seller-auth-panel { display: none; }
-    .seller-auth-form-wrap {
-      width: 100%;
-      padding: 2.5rem 2rem;
-      min-height: 100vh;
-      justify-content: center;
-    }
+  @media (max-width: 900px) {
+    .td-auth-panel { display: none; }
+    .td-auth-form-wrap { width: 100%; padding: 2rem 1.5rem; }
   }
 `;
 
-/* ── Reusable input field ──────────────────────────────────────── */
-function Field({ label, type = "text", value, onChange, placeholder, error, autoFocus }) {
+/* ── Field component ─────────────────────────────────────────── */
+function Field({ label, type = "text", value, onChange, placeholder, error, autoFocus, disabled }) {
   const [show, setShow] = useState(false);
   const isPwd = type === "password";
   return (
-    <div className="seller-field">
-      <label className="seller-field-label">{label}</label>
-      <div className="seller-field-wrap">
+    <div className="td-auth-field">
+      <label className="td-auth-label">{label}</label>
+      <div style={{ position: "relative" }}>
         <input
           type={isPwd && show ? "text" : type}
           value={value}
           onChange={onChange}
           placeholder={placeholder}
           autoFocus={autoFocus}
-          className={`seller-field-input${error ? " seller-field-input--error" : ""}`}
+          disabled={disabled}
+          className={`td-auth-input${error ? " td-auth-input--error" : ""}`}
+          style={isPwd ? { paddingRight: "2.5rem" } : {}}
         />
         {isPwd && (
-          <button type="button" className="seller-field-eye" onClick={() => setShow(s => !s)}>
+          <button
+            type="button"
+            onClick={() => setShow(s => !s)}
+            style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", fontSize: "0.75rem", color: G.muted, fontFamily: "inherit", padding: 0 }}
+          >
             {show ? "Hide" : "Show"}
           </button>
         )}
       </div>
-      {error && <div className="seller-field-error">⚠ {error}</div>}
+      {error && <div className="td-auth-err">⚠ {error}</div>}
     </div>
   );
 }
 
-/* ── LOGIN form ────────────────────────────────────────────────── */
+/* ── LOGIN form ──────────────────────────────────────────────── */
 function LoginForm({ onSwitch }) {
   const navigate = useNavigate();
+  const { setSession } = useAuth();
   const [form, setForm] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({});
   const [alert, setAlert] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
 
-  const handleSubmit = (ev) => {
+  const handleSubmit = async (ev) => {
     ev.preventDefault();
     const errs = {};
     if (!form.email.trim()) errs.email = "Email is required";
     if (!form.password) errs.password = "Password is required";
     if (Object.keys(errs).length) { setErrors(errs); return; }
 
-    // Look up users from localStorage
-    let users = [];
-    try { users = JSON.parse(localStorage.getItem("sellerUsers") || "[]"); } catch {}
+    setLoading(true);
 
-    const user = users.find(u => u.email.toLowerCase() === form.email.trim().toLowerCase());
+    try {
+      const res = await apiFetch("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email: form.email, password: form.password }),
+      });
+      const data = await res.json();
 
-    if (!user) {
-      setAlert({ type: "error", msg: "User not found. Please register first." });
-      return;
+      if (!data.success) {
+        setAlert({ type: "error", msg: data.message || "Invalid credentials" });
+        setLoading(false);
+        return;
+      }
+
+      // Store session
+      setSession(
+        { email: data.user?.email || form.email, name: data.user?.name || "Seller" }, 
+        "seller", 
+        data.token || "", 
+        data.onboardingCompleted
+      );
+
+      // Navigate based on backend status
+      navigate(data.onboardingCompleted ? "/seller/dashboard" : "/seller/onboarding", { replace: true });
+
+    } catch {
+      setAlert({ type: "error", msg: "Could not connect to server. Please try again." });
+      setLoading(false);
     }
-    if (user.password !== form.password) {
-      setAlert({ type: "error", msg: "Invalid credentials. Please check your password." });
-      return;
-    }
-
-    // ── Success: write shared auth state ────────────────────────
-    localStorage.setItem("isLoggedIn", "true");
-    localStorage.setItem("user", JSON.stringify({ fullName: user.fullName, email: user.email }));
-    navigate("/seller/dashboard", { replace: true });
   };
 
   return (
     <form onSubmit={handleSubmit} noValidate>
-      <div className="seller-auth-form-title">Welcome back</div>
-      <div className="seller-auth-form-hint">Sign in to your Seller Center account</div>
+      <div className="td-auth-form-title">Welcome back</div>
+      <div className="td-auth-form-hint">Sign in to your Trendy Drapes Seller account</div>
 
       {alert && (
-        <div className={`seller-auth-alert seller-auth-alert--${alert.type}`}>
+        <div className={`td-auth-alert td-auth-alert--${alert.type}`}>
           {alert.type === "error" ? "✕" : "✓"} {alert.msg}
         </div>
       )}
 
-      <Field label="Email Address" type="email" value={form.email} onChange={set("email")} placeholder="your@email.com" error={errors.email} autoFocus />
+      <Field label="Email Address" type="email" value={form.email} onChange={set("email")} placeholder="you@email.com" error={errors.email} autoFocus />
       <Field label="Password" type="password" value={form.password} onChange={set("password")} placeholder="Your password" error={errors.password} />
 
-      <button type="submit" className="seller-auth-submit">Sign In to Dashboard</button>
+      <button type="submit" className="td-auth-submit" disabled={loading}>
+        {loading ? "Signing in…" : "Sign In to Dashboard"}
+      </button>
 
-      <div className="seller-auth-divider"><span>or</span></div>
+      <div className="td-auth-divider"><span>or</span></div>
 
       <div style={{ textAlign: "center", fontSize: "0.72rem", color: G.muted, letterSpacing: "0.05em" }}>
         No account?{" "}
-        <button type="button" onClick={onSwitch} style={{ background: "none", border: "none", color: G.gold, cursor: "pointer", fontWeight: 600, fontSize: "0.72rem", fontFamily: "inherit", padding: 0, letterSpacing: "0.05em" }}>
-          Create one
+        <button type="button" onClick={onSwitch} style={{ background: "none", border: "none", color: G.gold, cursor: "pointer", fontWeight: 700, fontSize: "0.72rem", fontFamily: "inherit", padding: 0, letterSpacing: "0.05em" }}>
+          Create one →
         </button>
       </div>
     </form>
   );
 }
 
-/* ── REGISTER form ─────────────────────────────────────────────── */
+/* ── REGISTER form ───────────────────────────────────────────── */
 function RegisterForm({ onSwitch }) {
+  const navigate = useNavigate();
+  const { setSession } = useAuth();
   const [form, setForm] = useState({ fullName: "", email: "", password: "", confirm: "" });
   const [errors, setErrors] = useState({});
   const [alert, setAlert] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
 
-  const handleSubmit = (ev) => {
+  const handleSubmit = async (ev) => {
     ev.preventDefault();
     const errs = {};
     if (!form.fullName.trim()) errs.fullName = "Full name is required";
     if (!form.email.trim()) errs.email = "Email is required";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = "Enter a valid email address";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = "Enter a valid email";
     if (!form.password) errs.password = "Password is required";
-    else if (form.password.length < 6) errs.password = "Minimum 6 characters required";
-    if (!form.confirm) errs.confirm = "Please confirm your password";
-    else if (form.password !== form.confirm) errs.confirm = "Passwords do not match";
+    else if (form.password.length < 6) errs.password = "Minimum 6 characters";
+    if (form.password !== form.confirm) errs.confirm = "Passwords do not match";
     if (Object.keys(errs).length) { setErrors(errs); return; }
 
-    let users = [];
-    try { users = JSON.parse(localStorage.getItem("sellerUsers") || "[]"); } catch {}
+    setLoading(true);
 
-    if (users.find(u => u.email.toLowerCase() === form.email.trim().toLowerCase())) {
-      setErrors({ email: "This email is already registered. Please sign in." });
-      return;
+    try {
+      const res = await apiFetch("/api/auth/register", {
+        method: "POST",
+        body: JSON.stringify({ name: form.fullName, email: form.email, password: form.password, role: "seller" }),
+      });
+      const data = await res.json();
+
+      if (!data.success) {
+        setAlert({ type: "error", msg: data.message || "Registration failed" });
+        setLoading(false);
+        return;
+      }
+
+      // Auto-login after register
+      const loginRes = await apiFetch("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email: form.email, password: form.password }),
+      });
+      const loginData = await loginRes.json();
+
+      if (loginData.success) {
+        setSession(
+          { fullName: form.fullName, email: form.email }, 
+          "seller", 
+          loginData.token || "", 
+          loginData.onboardingCompleted
+        );
+
+        setAlert({ type: "success", msg: "Account created! Starting your onboarding…" });
+        setTimeout(() => navigate("/seller/onboarding", { replace: true }), 1200);
+      } else {
+        setAlert({ type: "success", msg: "Account created! Please sign in." });
+        setTimeout(() => onSwitch(), 1800);
+      }
+
+    } catch {
+      setAlert({ type: "error", msg: "Could not connect to server. Please try again." });
+      setLoading(false);
     }
-
-    users.push({ fullName: form.fullName.trim(), email: form.email.trim().toLowerCase(), password: form.password });
-    localStorage.setItem("sellerUsers", JSON.stringify(users));
-
-    setAlert({ type: "success", msg: "Account created! Redirecting to sign in…" });
-    setTimeout(() => onSwitch(), 1800);
   };
 
   return (
     <form onSubmit={handleSubmit} noValidate>
-      <div className="seller-auth-form-title">Create account</div>
-      <div className="seller-auth-form-hint">Join the Aurum Seller Center</div>
+      <div className="td-auth-form-title">Create account</div>
+      <div className="td-auth-form-hint">Join Trendy Drapes as a Seller</div>
 
       {alert && (
-        <div className={`seller-auth-alert seller-auth-alert--${alert.type}`}>
+        <div className={`td-auth-alert td-auth-alert--${alert.type}`}>
           {alert.type === "error" ? "✕" : "✓"} {alert.msg}
         </div>
       )}
 
       <Field label="Full Name" value={form.fullName} onChange={set("fullName")} placeholder="Your full name" error={errors.fullName} autoFocus />
-      <Field label="Email Address" type="email" value={form.email} onChange={set("email")} placeholder="your@email.com" error={errors.email} />
+      <Field label="Email Address" type="email" value={form.email} onChange={set("email")} placeholder="you@email.com" error={errors.email} />
       <Field label="Password" type="password" value={form.password} onChange={set("password")} placeholder="Min. 6 characters" error={errors.password} />
-      <Field label="Confirm Password" type="password" value={form.confirm} onChange={set("confirm")} placeholder="Repeat your password" error={errors.confirm} />
+      <Field label="Confirm Password" type="password" value={form.confirm} onChange={set("confirm")} placeholder="Repeat password" error={errors.confirm} />
 
-      <button type="submit" className="seller-auth-submit">Create Account</button>
+      <button type="submit" className="td-auth-submit" disabled={loading}>
+        {loading ? "Creating account…" : "Create Account & Continue"}
+      </button>
 
-      <div className="seller-auth-divider"><span>or</span></div>
+      <div className="td-auth-divider"><span>or</span></div>
 
       <div style={{ textAlign: "center", fontSize: "0.72rem", color: G.muted, letterSpacing: "0.05em" }}>
         Already registered?{" "}
-        <button type="button" onClick={onSwitch} style={{ background: "none", border: "none", color: G.gold, cursor: "pointer", fontWeight: 600, fontSize: "0.72rem", fontFamily: "inherit", padding: 0, letterSpacing: "0.05em" }}>
-          Sign in
+        <button type="button" onClick={onSwitch} style={{ background: "none", border: "none", color: G.gold, cursor: "pointer", fontWeight: 700, fontSize: "0.72rem", fontFamily: "inherit", padding: 0, letterSpacing: "0.05em" }}>
+          Sign in →
         </button>
       </div>
     </form>
   );
 }
 
-/* ── Page root ─────────────────────────────────────────────────── */
+/* ── Page root ───────────────────────────────────────────────── */
 export default function SellerAuthPage() {
   const navigate = useNavigate();
   const [mode, setMode] = useState("login");
+  const { user, role } = useAuth();
 
-  // If already logged in, skip straight to dashboard
   useEffect(() => {
-    if (localStorage.getItem("isLoggedIn") === "true") {
-      navigate("/seller/dashboard", { replace: true });
+    if (user && role === "seller") {
+      const done = user.onboardingCompleted === true;
+      navigate(done ? "/seller/dashboard" : "/seller/onboarding", { replace: true });
     }
-  }, [navigate]);
+  }, [user, role, navigate]);
 
   return (
     <>
       <style>{css}</style>
-      <div className="seller-auth-root">
+      <div className="td-auth-root">
 
-        {/* ── Left decorative panel ── */}
-        <div className="seller-auth-panel">
-          <div className="seller-auth-panel-logo">Aurum</div>
-          <div className="seller-auth-panel-sub">Seller Center — Est. 1924</div>
+        {/* ── Left panel ── */}
+        <div className="td-auth-panel">
+          <div className="td-auth-panel-logo">Trendy <em>Drapes</em></div>
+          <div className="td-auth-panel-sub">Seller Center — Since 2020</div>
 
-          <h1 className="seller-auth-panel-headline">
-            Grow your<br />
-            jewellery <em>business</em><br />
-            with us.
+          <h1 className="td-auth-panel-headline">
+            Sell your <em>sarees</em><br />
+            to a nation<br />
+            of buyers.
           </h1>
-          <p className="seller-auth-panel-body">
-            Manage your inventory, track orders, analyse revenue trends,
-            and connect with thousands of discerning buyers — all from
-            one beautifully crafted dashboard.
+
+          <div className="td-auth-panel-line" />
+
+          <p className="td-auth-panel-body">
+            List your handloom sarees, silk collections, and ethnic wear on India's
+            most trusted drapes marketplace. Manage inventory, track orders,
+            and grow your weaving business — all from one elegant dashboard.
           </p>
 
-          <div className="seller-auth-panel-stats">
+          <div className="td-auth-panel-stats">
             <div>
-              <div className="seller-auth-stat-number">50K+</div>
-              <div className="seller-auth-stat-label">Active Buyers</div>
+              <div className="td-auth-stat-number">1.2L+</div>
+              <div className="td-auth-stat-label">Active Buyers</div>
             </div>
             <div>
-              <div className="seller-auth-stat-number">₹18L+</div>
-              <div className="seller-auth-stat-label">Monthly GMV</div>
+              <div className="td-auth-stat-number">₹42L+</div>
+              <div className="td-auth-stat-label">Monthly GMV</div>
             </div>
             <div>
-              <div className="seller-auth-stat-number">4.8★</div>
-              <div className="seller-auth-stat-label">Seller Rating</div>
+              <div className="td-auth-stat-number">4.9★</div>
+              <div className="td-auth-stat-label">Seller Rating</div>
             </div>
           </div>
-
-          <div className="seller-auth-panel-line" />
         </div>
 
         {/* ── Right form panel ── */}
-        <div className="seller-auth-form-wrap">
-          {/* Back to shop */}
+        <div className="td-auth-form-wrap">
           <div style={{ marginBottom: "2rem" }}>
-            <Link to="/" className="seller-auth-back">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <Link to="/" className="td-auth-back">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <polyline points="15 18 9 12 15 6"/>
               </svg>
-              Back to Aurum Shop
+              Back to Trendy Drapes
             </Link>
           </div>
 
-          {/* Tab toggle */}
-          <div className="seller-auth-tabs">
-            <button
-              type="button"
-              className={`seller-auth-tab${mode === "login" ? " seller-auth-tab--active" : ""}`}
-              onClick={() => setMode("login")}
-            >
+          <div className="td-auth-tabs">
+            <button type="button" className={`td-auth-tab${mode === "login" ? " td-auth-tab--active" : ""}`} onClick={() => setMode("login")}>
               Sign In
             </button>
-            <button
-              type="button"
-              className={`seller-auth-tab${mode === "register" ? " seller-auth-tab--active" : ""}`}
-              onClick={() => setMode("register")}
-            >
+            <button type="button" className={`td-auth-tab${mode === "register" ? " td-auth-tab--active" : ""}`} onClick={() => setMode("register")}>
               Register
             </button>
           </div>
@@ -624,10 +653,11 @@ export default function SellerAuthPage() {
             : <RegisterForm onSwitch={() => setMode("login")} />
           }
 
-          <div style={{ marginTop: "2rem", fontSize: "0.62rem", color: G.muted, textAlign: "center", letterSpacing: "0.08em" }}>
-            Your data is stored securely and never shared
+          <div style={{ marginTop: "2rem", fontSize: "0.62rem", color: G.muted, textAlign: "center", letterSpacing: "0.08em", lineHeight: 1.5 }}>
+            Your data is encrypted and never shared with third parties
           </div>
         </div>
+
       </div>
     </>
   );

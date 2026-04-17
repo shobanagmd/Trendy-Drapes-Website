@@ -11,7 +11,14 @@ export default function SellerProtectedRoute({ children }) {
     if (!loggedIn) {
       navigate("/seller", { replace: true });
     } else {
-      setReady(true);
+      const onboardingDone = localStorage.getItem("td_onboarding_done") === "true";
+      const isHeaderOnboarding = window.location.pathname.includes("/seller/onboarding");
+      
+      if (!onboardingDone && !isHeaderOnboarding) {
+        navigate("/seller/onboarding", { replace: true });
+      } else {
+        setReady(true);
+      }
     }
   }, [navigate]);
 

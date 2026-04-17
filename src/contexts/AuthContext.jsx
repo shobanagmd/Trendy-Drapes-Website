@@ -1,146 +1,177 @@
-import { createContext, useContext, useState, useCallback } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
+import { apiFetch } from "@/utils/api";
 
-const AuthContext = createContext(undefined);
 
-const USER_KEY = "trendy_user";
-const ADMIN_KEY = "trendy_isAdmin";
-const REGISTERED_USERS_KEY = "trendy_registered_users";
+// ─── HARDCODED CREDENTIALS ────────────────────────────────────────────────────
+const ADMIN_EMAIL = "admin@gmail.com";
+const ADMIN_PASSWORD = "admin@123";
+
+const SELLER_EMAIL = "seller@gmail.com";
+const SELLER_PASSWORD = "seller@123";
+
+// ─── CONTEXT ──────────────────────────────────────────────────────────────────
+const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(() => {
-    try {
-      const data = localStorage.getItem(USER_KEY);
-      return data ? JSON.parse(data) : null;
-    } catch {
-      return null;
-    }
-  });
+  const [user, setUser] = useState(null);
+  const [role, setRole] = useState(null); // "admin" | "seller" | "user"
+  const [isAdmin, setIsAdmin] = useState(false);
 
-  const [isAdmin, setIsAdmin] = useState(() => {
-    try {
-      return localStorage.getItem(ADMIN_KEY) === "true";
-    } catch {
-      return false;
-    }
-  });
-  
-  const [role, setRole] = useState(() => {
-    try {
-      return localStorage.getItem("role") || null;
-    } catch {
-      return null;
-    }
-  });
-
-  // Get all registered users from localStorage
-  const getRegisteredUsers = useCallback(() => {
-    try {
-      const data = localStorage.getItem(REGISTERED_USERS_KEY);
-      return data ? JSON.parse(data) : [];
-    } catch {
-      return [];
-    }
+  // Restore session on mount
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        const token = localStorage.getItem("auth_token");
+        if (token) {
+          const res = await apiFetch("/api/user/me");
+          if (res.ok) {
+            const data = await res.json();
+            setSession(data.user, data.user.role, token);
+          } else {
+            logout(); // Token expired or invalid
+          }
+        }
+      } catch (err) {
+        console.error("Auth init error:", err);
+      }
+    };
+    initAuth();
   }, []);
 
-  // Register a new user — must be done before login
-  const register = useCallback((email, password, name) => {
-    const users = getRegisteredUsers();
-    const exists = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
-    if (exists) {
-      return { success: false, message: "An account with this email already exists. Please login." };
+  // ── login ──────────────────────────────────────────────────────────────────
+  const login = async (email, password) => {
+    try {
+      const res = await apiFetch("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSession(data.user, data.role, data.token, data.onboardingCompleted);
+        return { success: true, role: data.role };
+      }
+      return { success: false, message: data.message };
+    } catch (err) {
+      return { success: false, message: "Connection error" };
     }
-    const newUser = { email: email.toLowerCase(), password, name: name || "User" };
-    const updated = [...users, newUser];
-    localStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(updated));
-    return { success: true, message: "Account created successfully! Please login to continue." };
-  }, [getRegisteredUsers]);
+  };
 
-  // Login — handles admin, seller, and regular users
-  const login = useCallback((email, password) => {
-    // 1. Admin Check
-    if (email.toLowerCase() === "admin@gmail.com" && password === "admin@123") {
-      const adminData = { email: "admin@gmail.com", name: "Admin" };
-      localStorage.setItem(USER_KEY, JSON.stringify(adminData));
-      localStorage.setItem("role", "admin");
-      localStorage.setItem(ADMIN_KEY, "true");
-      localStorage.setItem("isLoggedIn", "true");
-      setUser(adminData);
-      setRole("admin");
-      setIsAdmin(true);
-      return { success: true, role: "admin" };
+  // ── register ───────────────────────────────────────────────────────────────
+  const register = async (email, password, name, role = "user") => {
+    try {
+      const res = await apiFetch("/api/auth/register", {
+        method: "POST",
+        body: JSON.stringify({ name, email, password, role })
+      });
+      const data = await res.json();
+      if (data.success) {
+        return { success: true, message: data.message };
+      }
+      return { success: false, message: data.message };
+    } catch (err) {
+      return { success: false, message: "Connection error" };
     }
+  };
 
-    // 2. Seller Check
-    if (email.toLowerCase() === "seller@gmail.com" && password === "seller@123") {
-      const sellerData = { email: "seller@gmail.com", name: "Seller" };
-      localStorage.setItem(USER_KEY, JSON.stringify(sellerData));
-      localStorage.setItem("role", "seller");
-      localStorage.setItem(ADMIN_KEY, "false");
-      localStorage.setItem("isLoggedIn", "true");
-      setUser(sellerData);
-      setRole("seller");
-      setIsAdmin(false);
-      return { success: true, role: "seller" };
-    }
-
-    // 3. Regular User Check
-    const users = getRegisteredUsers();
-    const found = users.find(
-      (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password
-    );
-    if (!found) {
-      return { success: false, message: "Invalid email or password. Please check and try again." };
-    }
-    const userData = { email: found.email, name: found.name };
-    localStorage.setItem(USER_KEY, JSON.stringify(userData));
-    localStorage.setItem("role", "user");
-    localStorage.setItem(ADMIN_KEY, "false");
-    localStorage.setItem("isLoggedIn", "true");
-    setUser(userData);
-    setRole("user");
-    setIsAdmin(false);
-    return { success: true, role: "user" };
-  }, [getRegisteredUsers]);
-
-  const logout = useCallback(() => {
-    localStorage.removeItem(USER_KEY);
-    localStorage.removeItem(ADMIN_KEY);
-    localStorage.removeItem("role");
-    localStorage.removeItem("isLoggedIn");
+  // ── logout ─────────────────────────────────────────────────────────────────
+  const logout = () => {
     setUser(null);
     setRole(null);
     setIsAdmin(false);
-  }, []);
+    localStorage.removeItem("auth_token");
+    localStorage.removeItem("auth_user");
+    localStorage.removeItem("auth_role");
+    localStorage.removeItem("isLoggedIn");
+  };
 
-  const adminLogin = useCallback((username, password) => {
-    // Allow both 'admin' and 'admin@gmail.com' for the admin login form
-    if ((username === "admin" || username === "admin@gmail.com") && password === "admin@123") {
-      const adminData = { email: "admin@gmail.com", name: "Admin" };
-      localStorage.setItem(USER_KEY, JSON.stringify(adminData));
-      localStorage.setItem(ADMIN_KEY, "true");
-      localStorage.setItem("role", "admin");
-      localStorage.setItem("isLoggedIn", "true");
-      setUser(adminData);
-      setIsAdmin(true);
-      setRole("admin");
-      return true;
+  // ── adminLogin ─────────────────────────────────────────────────────────────
+  const adminLogin = (email, password) => login(email, password);
+
+  // ── completeOnboarding ─────────────────────────────────────────────────────
+  const completeOnboarding = async (formData) => {
+    try {
+      const res = await apiFetch("/api/seller/complete-onboarding", {
+        method: "POST",
+        body: formData,
+      });
+
+      // Check if response is JSON
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        const text = await res.text();
+        console.error("Non-JSON response received:", text);
+        return { success: false, message: `Server error: Unexpected response format (${res.status})` };
+      }
+
+      const data = await res.json();
+      if (data.success) {
+        // Update local state with functional setter to ensure we have latest data
+        setUser(prev => {
+          const updated = { ...prev, onboardingCompleted: true };
+          localStorage.setItem("auth_user", JSON.stringify(updated));
+          return updated;
+        });
+        return { success: true };
+      }
+      return data;
+    } catch (err) {
+      console.error(err);
+      return { success: false, message: "Server error" };
     }
-    return false;
-  }, []);
+  };
 
-  const adminLogout = useCallback(() => {
-    logout(); // Use centralized logout
-  }, [logout]);
+  // ─── Private Helpers ───────────────────────────────────────────────────────
+  const setSession = (userObj, roleStr, token = null, onboardingCompleted = null) => {
+    const userData = { ...userObj };
+    if (onboardingCompleted !== null) {
+      userData.onboardingCompleted = onboardingCompleted;
+    }
+    
+    setUser(userData);
+    setRole(roleStr);
+    setIsAdmin(roleStr === "admin");
+    localStorage.setItem("auth_user", JSON.stringify(userData));
+    localStorage.setItem("auth_role", roleStr);
+    if (token) localStorage.setItem("auth_token", token);
+    localStorage.setItem("isLoggedIn", "true");
+  };
+
+  const _getRegisteredUsers = () => {
+    try {
+      return JSON.parse(localStorage.getItem("registered_users") || "[]");
+    } catch {
+      return [];
+    }
+  };
+
+  const _saveRegisteredUsers = (users) => {
+    localStorage.setItem("registered_users", JSON.stringify(users));
+  };
 
   return (
-    <AuthContext.Provider value={{ user, isAdmin, role, setRole, setIsAdmin, setUser, login, logout, register, adminLogin, adminLogout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        setUser,
+        role,
+        setRole,
+        isAdmin,
+        setIsAdmin,
+        login,
+        register,
+        logout,
+        adminLogin,
+        setSession,
+        completeOnboarding,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
 };
 
 export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error("useAuth must be used within AuthProvider");
-  return context;
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used within an AuthProvider");
+  return ctx;
 };

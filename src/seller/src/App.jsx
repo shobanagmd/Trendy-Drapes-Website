@@ -1,22 +1,57 @@
-// // export default App
-// import SellerDashboard from "./SellerDashboard";
+/**
+ * ─────────────────────────────────────────────────────────────────
+ *  seller/src/App.jsx  (UPDATED — adds /seller/onboarding route)
+ *
+ *  REPLACE the existing file at: src/seller/src/App.jsx
+ *
+ *  Changes from original:
+ *   • Added import for SellerOnboarding
+ *   • Added <Route path="onboarding" element={<ProtectedRoute><SellerOnboarding /></ProtectedRoute>} />
+ *   • Default redirect now checks td_onboarding_done before going to dashboard
+ * ─────────────────────────────────────────────────────────────────
+ */
 
-// function App() {
-//   return <SellerDashboard />;
-// }
-
-// export default App;
 import { Routes, Route, Navigate } from "react-router-dom";
-import AuthPage from "./AuthPage";
 import DashboardWrapper from "./DashboardWrapper";
 import ProtectedRoute from "./ProtectedRoute";
+import SellerOnboarding from "../pages/SellerOnboarding";
+import { useAuth } from "../../contexts/AuthContext";
+
+/**
+ * Smart default redirect:
+ * - Not logged in        → ProtectedRoute handles → /seller (auth page)
+ * - Logged in, no onboarding → /seller/onboarding
+ * - Logged in, onboarding done → /seller/dashboard
+ */
+function SmartRedirect() {
+  const { user } = useAuth();
+  
+  // Wait for user data to be restored from localStorage
+  if (localStorage.getItem("isLoggedIn") === "true" && !user) {
+    return null; // Or a loading spinner
+  }
+  
+  const onboardingDone = user?.onboardingCompleted === true;
+  return <Navigate to={onboardingDone ? "dashboard" : "onboarding"} replace />;
+}
+
 function App() {
   return (
     <Routes>
-      {/* Default redirect to dashboard */}
-      <Route path="/" element={<Navigate to="dashboard" replace />} />
+      {/* Default: smart redirect based on onboarding status */}
+      <Route path="/" element={<SmartRedirect />} />
 
-      {/* Protected dashboard entry point */}
+      {/* ── Onboarding (protected — must be logged in) ── */}
+      <Route
+        path="onboarding"
+        element={
+          <ProtectedRoute>
+            <SellerOnboarding />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* ── Dashboard and all sub-pages ── */}
       <Route
         path="dashboard"
         element={
@@ -25,6 +60,7 @@ function App() {
           </ProtectedRoute>
         }
       />
+
       {["products", "orders", "analytics", "notifications", "payments", "reviews", "settings"].map(path => (
         <Route
           key={path}
@@ -37,11 +73,8 @@ function App() {
         />
       ))}
 
-      {/* Convenience redirect */}
-      <Route path="login" element={<Navigate to="/" replace />} />
-
-      {/* Catch-all */}
-      <Route path="*" element={<Navigate to="dashboard" replace />} />
+      {/* Catch-all → smart redirect */}
+      <Route path="*" element={<SmartRedirect />} />
     </Routes>
   );
 }

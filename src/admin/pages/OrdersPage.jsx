@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { StatCard } from "@/admin/components/StatCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { apiFetch } from "@/utils/api";
+import { toast } from "sonner";
 import {
   Search, ShoppingCart, Truck, CheckCircle2, XCircle, RotateCcw,
   Eye, X, MapPin, Download, Package, ExternalLink, Calendar, Check,
@@ -207,9 +209,8 @@ export default function OrdersPage() {
   const [search, setSearch]             = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [selectedOrder, setSelectedOrder] = useState(null);
-
-  // Mutable orders state — all updates live here
-  const [orders, setOrders] = useState(INITIAL_ORDERS);
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   // Per-modal edit state
   const [editStatus, setEditStatus]           = useState("");
@@ -218,9 +219,41 @@ export default function OrdersPage() {
   const [editEstDate, setEditEstDate]         = useState("");
   const [editTrackingLink, setEditTrackingLink] = useState("");
 
-  // Save feedback
   const [statusSaved, setStatusSaved]     = useState(false);
   const [trackingSaved, setTrackingSaved] = useState(false);
+
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        const res = await apiFetch("/api/orders");
+        const data = await res.json();
+        if (data.success) {
+          // Map backend orders to frontend format
+          const mapped = data.orders.map(o => ({
+            id: o.order_id,
+            customer: o.customer_name,
+            email: o.customer_email,
+            items: o.items_count,
+            total: `₹${Number(o.total).toLocaleString("en-IN")}`,
+            payment: "UPI", // Defaulting as we don't store payment method yet
+            seller: "Trendy Drapes", // Defaulting
+            date: new Date(o.created_at).toLocaleDateString("en-IN", { day: '2-digit', month: 'short', year: 'numeric' }),
+            status: o.status,
+            courier: "",
+            trackingId: "",
+            estimatedDelivery: "",
+            trackingLink: ""
+          }));
+          setOrders(mapped);
+        }
+      } catch (err) {
+        console.error("Fetch orders error:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchOrders();
+  }, []);
 
   const openOrder = (o) => {
     setSelectedOrder(o);

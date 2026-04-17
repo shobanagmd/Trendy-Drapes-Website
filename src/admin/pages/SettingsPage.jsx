@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Shield, Bell, Lock, Store, Search } from "lucide-react";
+import { apiFetch } from "@/utils/api";
+import { toast } from "sonner";
 
 const sections = [
   {
@@ -37,6 +39,13 @@ const sections = [
 
 export default function SettingsPage() {
   const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [passForm, setPassForm] = useState({
+    current: "",
+    new: "",
+    confirm: ""
+  });
+
   const filteredSections = sections.filter(
     (s) =>
       s.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -44,6 +53,41 @@ export default function SettingsPage() {
         item.label.toLowerCase().includes(search.toLowerCase())
       )
   );
+
+  const handlePasswordChange = async () => {
+    if (!passForm.current || !passForm.new || !passForm.confirm) {
+      return toast.error("Please fill in all fields");
+    }
+    if (passForm.new !== passForm.confirm) {
+      return toast.error("New passwords do not match");
+    }
+    if (passForm.new.length < 6) {
+      return toast.error("Password must be at least 6 characters");
+    }
+
+    try {
+      setLoading(true);
+      const res = await apiFetch("/api/user/change-password", {
+        method: "POST",
+        body: JSON.stringify({
+          currentPassword: passForm.current,
+          newPassword: passForm.new
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        toast.success("Password updated successfully");
+        setPassForm({ current: "", new: "", confirm: "" });
+      } else {
+        toast.error(data.message || "Failed to update password");
+      }
+    } catch (err) {
+      toast.error("An error occurred. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div>
@@ -83,11 +127,40 @@ export default function SettingsPage() {
             <div><h3 className="text-sm font-semibold text-card-foreground">Change Password</h3><p className="text-xs text-muted-foreground">Update admin password</p></div>
           </div>
           <div className="grid gap-3 sm:grid-cols-3">
-            <div><label className="text-xs font-medium text-card-foreground block mb-1">Current</label><Input type="password" placeholder="••••••••" className="bg-secondary border-none text-sm" /></div>
-            <div><label className="text-xs font-medium text-card-foreground block mb-1">New</label><Input type="password" placeholder="••••••••" className="bg-secondary border-none text-sm" /></div>
-            <div><label className="text-xs font-medium text-card-foreground block mb-1">Confirm</label><Input type="password" placeholder="••••••••" className="bg-secondary border-none text-sm" /></div>
+            <div>
+              <label className="text-xs font-medium text-card-foreground block mb-1">Current</label>
+              <Input 
+                type="password" 
+                placeholder="••••••••" 
+                className="bg-secondary border-none text-sm" 
+                value={passForm.current}
+                onChange={(e) => setPassForm({...passForm, current: e.target.value})}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-card-foreground block mb-1">New</label>
+              <Input 
+                type="password" 
+                placeholder="••••••••" 
+                className="bg-secondary border-none text-sm" 
+                value={passForm.new}
+                onChange={(e) => setPassForm({...passForm, new: e.target.value})}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-card-foreground block mb-1">Confirm</label>
+              <Input 
+                type="password" 
+                placeholder="••••••••" 
+                className="bg-secondary border-none text-sm" 
+                value={passForm.confirm}
+                onChange={(e) => setPassForm({...passForm, confirm: e.target.value})}
+              />
+            </div>
           </div>
-          <Button className="mt-4" size="sm">Update Password</Button>
+          <Button className="mt-4" size="sm" onClick={handlePasswordChange} disabled={loading}>
+            {loading ? "Updating..." : "Update Password"}
+          </Button>
         </div>
       </div>
     </div>

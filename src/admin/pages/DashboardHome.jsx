@@ -117,11 +117,11 @@ const productPerformance = [
 ];
 
 const recentOrders = [
-  { id: "ORD-78451", customer: "Rahul Sharma", items: 3, total: "₹2,480", status: "Delivered",  time: "12 min ago" },
-  { id: "ORD-78450", customer: "Priya Patel",  items: 1, total: "₹899",   status: "Shipped",    time: "28 min ago" },
-  { id: "ORD-78449", customer: "Amit Kumar",   items: 5, total: "₹4,120", status: "Processing", time: "1 hr ago"   },
-  { id: "ORD-78448", customer: "Sneha Reddy",  items: 2, total: "₹1,560", status: "Delivered",  time: "2 hrs ago"  },
-  { id: "ORD-78447", customer: "Vikram Singh", items: 4, total: "₹3,200", status: "Cancelled",  time: "3 hrs ago"  },
+  { order_id: "ORD-78451", customer: "Rahul Sharma", items: 3, total: "₹2,480", status: "Delivered",  time: "12 min ago" },
+  { order_id: "ORD-78450", customer: "Priya Patel",  items: 1, total: "₹899",   status: "Shipped",    time: "28 min ago" },
+  { order_id: "ORD-78449", customer: "Amit Kumar",   items: 5, total: "₹4,120", status: "Processing", time: "1 hr ago"   },
+  { order_id: "ORD-78448", customer: "Sneha Reddy",  items: 2, total: "₹1,560", status: "Delivered",  time: "2 hrs ago"  },
+  { order_id: "ORD-78447", customer: "Vikram Singh", items: 4, total: "₹3,200", status: "Cancelled",  time: "3 hrs ago"  },
 ];
 
 const orderStatusStyle = {
@@ -553,8 +553,8 @@ export default function DashboardHome() {
               <thead><tr><th>Order ID</th><th>Customer</th><th>Items</th><th>Total</th><th>Status</th><th>Time</th></tr></thead>
               <tbody>
                 {recentOrders.map((o) => (
-                  <tr key={o.id}>
-                    <td className="font-medium text-card-foreground">{o.id}</td>
+                  <tr key={o.order_id}>
+                    <td className="font-medium text-card-foreground">{o.order_id}</td>
                     <td className="text-card-foreground">{o.customer}</td>
                     <td className="text-muted-foreground">{o.items}</td>
                     <td className="font-medium text-card-foreground">{o.total}</td>

@@ -3,7 +3,7 @@ import { StatCard } from "@/admin/components/StatCard";
 import {
   IndianRupee, TrendingUp, CreditCard, Receipt, Search,
   Package, Plus, Minus, Edit2, Check, X, Download,
-  Calendar, Filter, ChevronDown,
+  Calendar, Filter, ChevronDown, RefreshCw,
 } from "lucide-react";
 import { Input } from "@/admin/components/ui/input";
 import { Button } from "@/admin/components/ui/button";
@@ -12,6 +12,8 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell,
 } from "recharts";
 import { getAllProducts, updateProduct } from "@/admin/lib/productStorage";
+import { apiFetch } from "@/utils/api";
+import { toast } from "sonner";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const COLORS = ["hsl(25,95%,53%)", "hsl(210,92%,55%)", "hsl(280,65%,55%)", "hsl(38,92%,50%)"];
@@ -144,6 +146,24 @@ export default function FinancePage() {
   const [editQty,     setEditQty]     = useState("");
   const [payouts,     setPayouts]     = useState(INITIAL_PAYOUTS);
   const [transactions, setTransactions] = useState(INITIAL_TRANSACTIONS);
+  const [isRecalculating, setIsRecalculating] = useState(false);
+
+  const handleRecalculate = async () => {
+    try {
+      setIsRecalculating(true);
+      const res = await apiFetch("/api/finance/admin/recalculate-summaries", { method: "POST" });
+      if (res.ok) {
+        const data = await res.json();
+        toast.success(data.message || "Financial summaries recalculated successfully!");
+      } else {
+        toast.error("Failed to recalculate summaries.");
+      }
+    } catch (err) {
+      toast.error("Error connecting to server.");
+    } finally {
+      setIsRecalculating(false);
+    }
+  };
 
   // ── Load products for stock management ────────────────────────────────────
   useEffect(() => {
@@ -248,9 +268,21 @@ export default function FinancePage() {
   return (
     <div className="space-y-6">
 
-      <div className="page-header">
-        <h1 className="page-title">Finance</h1>
-        <p className="page-subtitle">Revenue analytics, stock management, seller payouts, and transaction tracking</p>
+      <div className="page-header flex items-center justify-between">
+        <div>
+          <h1 className="page-title">Finance</h1>
+          <p className="page-subtitle">Revenue analytics, stock management, seller payouts, and transaction tracking</p>
+        </div>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="gap-2" 
+          onClick={handleRecalculate}
+          disabled={isRecalculating}
+        >
+          <RefreshCw className={`h-4 w-4 ${isRecalculating ? "animate-spin" : ""}`} />
+          {isRecalculating ? "Recalculating..." : "Recalculate Summaries"}
+        </Button>
       </div>
 
       {/* ── Stat Cards ── */}

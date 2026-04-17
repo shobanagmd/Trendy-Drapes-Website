@@ -1,9 +1,11 @@
 import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import SellerDashboard from "./SellerDashboard";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function DashboardWrapper() {
   const navigate = useNavigate();
+  const { logout } = useAuth();
   const ref = useRef(null);
 
   useEffect(() => {
@@ -33,11 +35,7 @@ export default function DashboardWrapper() {
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("isLoggedIn");
-    localStorage.removeItem("currentUser");
-    localStorage.removeItem("role");
-    localStorage.removeItem("trendy_user");
-    localStorage.removeItem("trendy_isAdmin");
+    logout();
     navigate("/login", { replace: true });
   };
 

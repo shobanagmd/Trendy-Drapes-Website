@@ -1,15 +1,42 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import HeroSection from "@/components/HeroSection";
 import CategoryGrid from "@/components/CategoryGrid";
 import ProductCard from "@/components/ProductCard";
-import { products } from "@/data/products";
+import { useLocalProducts } from "@/hooks/useLocalProducts";
 
 
 const Home = () => {
-  const trending = products.filter((p) => p.discount >= 30).slice(0, 8);
-  const newArrivals = products.filter((p) => p.isNew).slice(0, 8);
+  const { localProducts: products, loading } = useLocalProducts();
+
+  const getDiverseProducts = (allProducts, filterFn, limit = 8) => {
+    const filtered = allProducts.filter(filterFn);
+    if (filtered.length === 0) return [];
+    
+    const categories = [...new Set(filtered.map(p => p.category))];
+    const selection = [];
+    const itemsPerCategory = Math.ceil(limit / categories.length);
+
+    categories.forEach(cat => {
+      const catItems = filtered.filter(p => p.category === cat).slice(0, itemsPerCategory);
+      selection.push(...catItems);
+    });
+
+    // Fill up if we didn't reach the limit, or trim if we exceeded it
+    if (selection.length > limit) return selection.slice(0, limit);
+    if (selection.length < limit) {
+      const alreadyPickedIds = new Set(selection.map(s => s.id));
+      const remaining = filtered.filter(p => !alreadyPickedIds.has(p.id));
+      return [...selection, ...remaining].slice(0, limit);
+    }
+    return selection;
+  };
+
+  const trending = getDiverseProducts(products, (p) => p.discount >= 30, 8);
+  const newArrivals = getDiverseProducts(products, (p) => p.isNew, 8);
+
 
   return (
     <div className="min-h-screen flex flex-col bg-background">

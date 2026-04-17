@@ -55,6 +55,9 @@ export default function AddProductPage() {
     name: "", category: "Sarees", subCategory: "", price: "", mrp: "", stock: "",
     description: "", fabric: "", color: "", work: "", pattern: "",
     sizes: ["Free Size"], images: [], readyToShip: false, featured: false,
+    weight: "", length: "", breadth: "", height: "", brand: "",
+    sellingPrice: "", deliveryCharge: "0", addCharge: "0",
+    variantName: "", variantValue: "", isVariant: false, parentProductId: null
   });
   const [errors,     setErrors]     = useState({});
   const [submitting, setSubmitting] = useState(false);
@@ -140,6 +143,18 @@ export default function AddProductPage() {
       sizes:         form.sizes,
       readyToShip:   form.readyToShip,
       featured:      form.featured,
+      weight:        Number(form.weight) || 0,
+      length:        Number(form.length) || 0,
+      breadth:       Number(form.breadth) || 0,
+      height:        Number(form.height) || 0,
+      brand:         form.brand.trim(),
+      sellingPrice:  Number(form.sellingPrice) || price,
+      deliveryCharge:Number(form.deliveryCharge) || 0,
+      addCharge:     Number(form.addCharge) || 0,
+      variantName:   form.variantName,
+      variantValue:  form.variantValue,
+      isVariant:     form.isVariant,
+      parentProductId: form.parentProductId,
       isNew:         true,
       isExclusive:   false,
       tags:          [],
@@ -262,6 +277,58 @@ export default function AddProductPage() {
               </span>
             </div>
           )}
+        </div>
+
+        {/* Shipping & Dimensions */}
+        <div className="border border-border rounded-lg p-5 space-y-4 bg-card">
+          <h3 className="text-base font-semibold text-foreground">Shipping & Dimensions</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">Weight (kg)</label>
+              <Input name="weight" type="number" step="0.01" value={form.weight} onChange={handleChange} placeholder="0.5" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">Length (cm)</label>
+              <Input name="length" type="number" value={form.length} onChange={handleChange} placeholder="30" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">Breadth (cm)</label>
+              <Input name="breadth" type="number" value={form.breadth} onChange={handleChange} placeholder="20" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">Height (cm)</label>
+              <Input name="height" type="number" value={form.height} onChange={handleChange} placeholder="5" />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">Delivery Charge (₹)</label>
+              <Input name="deliveryCharge" type="number" value={form.deliveryCharge} onChange={handleChange} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">Additional Charge (₹)</label>
+              <Input name="addCharge" type="number" value={form.addCharge} onChange={handleChange} />
+            </div>
+          </div>
+        </div>
+
+        {/* Brand & Variants */}
+        <div className="border border-border rounded-lg p-5 space-y-4 bg-card">
+          <h3 className="text-base font-semibold text-foreground">Brand & Variants</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="sm:col-span-2">
+              <label className="block text-sm font-medium text-foreground mb-1.5">Brand Name</label>
+              <Input name="brand" value={form.brand} onChange={handleChange} placeholder="e.g. Trendy Drapes Exclusive" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">Variant Name</label>
+              <Input name="variantName" value={form.variantName} onChange={handleChange} placeholder="e.g. Color, Material" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">Variant Value</label>
+              <Input name="variantValue" value={form.variantValue} onChange={handleChange} placeholder="e.g. Red, Silk" />
+            </div>
+          </div>
         </div>
 
         {/* Product Details */}

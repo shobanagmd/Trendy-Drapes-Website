@@ -16,7 +16,7 @@ import Wishlist from "./pages/Wishlist";
 import Profile from "./pages/Profile";
 import Login from "./pages/Login";
 import AdminLogin from "./pages/AdminLogin";
-import CheckoutPage from "./pages/CheckoutPage";
+import Checkout from "./pages/Checkout";
 import OrderSuccess from "./pages/OrderSuccess";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
@@ -58,12 +58,13 @@ const App = () => (
 
                 {/* Protected user routes */}
                 <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+                <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
                 <Route path="/collections" element={<ProtectedRoute><Index /></ProtectedRoute>} />
                 <Route path="/product/:id" element={<ProtectedRoute><ProductDetail /></ProtectedRoute>} />
                 <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
                 <Route path="/wishlist" element={<ProtectedRoute><Wishlist /></ProtectedRoute>} />
                 <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-                <Route path="/checkout" element={<ProtectedRoute><CheckoutPage /></ProtectedRoute>} />
+                <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
                 <Route path="/order-success" element={<ProtectedRoute><OrderSuccess /></ProtectedRoute>} />
                 <Route path="/about" element={<ProtectedRoute><About /></ProtectedRoute>} />
                 <Route path="/contact" element={<ProtectedRoute><Contact /></ProtectedRoute>} />

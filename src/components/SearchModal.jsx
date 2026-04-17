@@ -1,9 +1,10 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { Search, X } from "lucide-react";
 import { Link } from "react-router-dom";
-import { products } from "@/data/products";
+import { useLocalProducts } from "@/hooks/useLocalProducts";
 
 const SearchModal = ({ isOpen, onClose }) => {
+  const { localProducts: products } = useLocalProducts();
   const [query, setQuery] = useState("");
   const inputRef = useRef(null);
 
@@ -26,12 +27,12 @@ const SearchModal = ({ isOpen, onClose }) => {
     return products.filter(
       (p) =>
         p.name.toLowerCase().includes(q) ||
-        p.fabric.toLowerCase().includes(q) ||
-        p.color.toLowerCase().includes(q) ||
-        p.subCategory.toLowerCase().includes(q) ||
-        p.work.toLowerCase().includes(q)
+        (p.fabric && p.fabric.toLowerCase().includes(q)) ||
+        (p.color && p.color.toLowerCase().includes(q)) ||
+        (p.subCategory && p.subCategory.toLowerCase().includes(q)) ||
+        (p.work && p.work.toLowerCase().includes(q))
     );
-  }, [query]);
+  }, [query, products]);
 
   if (!isOpen) return null;
 

@@ -55,6 +55,7 @@ export default function AddProductPage({ onDisplayAll }) {
     description: "", fabric: "", color: "", work: "", pattern: "",
     sizes: ["Free Size"], images: [], readyToShip: false, featured: false,
   });
+  const [imageFiles, setImageFiles] = useState([]);
   const [errors,     setErrors]     = useState({});
   const [submitting, setSubmitting] = useState(false);
 
@@ -78,6 +79,8 @@ export default function AddProductPage({ onDisplayAll }) {
 
   const handleImageUpload = (e) => {
     const files = Array.from(e.target.files || []);
+    setImageFiles((prev) => [...prev, ...files]);
+    
     files.forEach((file) => {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -91,6 +94,7 @@ export default function AddProductPage({ onDisplayAll }) {
 
   const removeImage = (index) => {
     setForm((p) => ({ ...p, images: p.images.filter((_, i) => i !== index) }));
+    setImageFiles((p) => p.filter((_, i) => i !== index));
   };
 
   const validate = () => {
@@ -138,8 +142,8 @@ export default function AddProductPage({ onDisplayAll }) {
       tags:          [],
     };
 
-    // addProduct is now async (compresses images before storing)
-    const result = await addProduct(product);
+    // addProduct is now async (uploads to server)
+    const result = await addProduct(product, imageFiles, 'admin');
 
     setSubmitting(false);
 

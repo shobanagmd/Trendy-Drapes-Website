@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Plus, Package, Star, Eye, Edit, Trash2 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { getAllProducts, deleteProduct } from "@/lib/productStorage";
+import { useLocalProducts } from "@/hooks/useLocalProducts";
 import AddProductPage from "./AddProductPage";
 
 const categoryStock = [
@@ -20,28 +20,28 @@ const statusStyle = {
 };
 
 export default function ProductsPage() {
-  const [products, setProducts] = useState([]);
-  const [showAddForm, setShowAddForm] = useState(true);
-
-  useEffect(() => {
-    // Load products from localStorage
-    setProducts(getAllProducts());
-  }, []);
+  const { localProducts: products, loading, removeProduct, editProduct, refresh } = useLocalProducts();
+  const [showAddForm, setShowAddForm] = useState(false);
 
   // Determine status based on stock
   const getStatus = (product) => {
-    if (product.stock === 0) return "Out of Stock";
-    if (product.stock < 50) return "Low Stock";
+    const stock = parseInt(product.stock || 0);
+    if (stock === 0) return "Out of Stock";
+    if (stock < 50) return "Low Stock";
     return "Active";
   };
 
   // Format products
   const filtered = products.map(p => ({ ...p, status: getStatus(p) }));
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this product?")) {
-      deleteProduct(id);
-      setProducts(getAllProducts());
+      const result = await removeProduct(id);
+      if (result.ok) {
+        alert("Product deleted successfully!");
+      } else {
+        alert("Error deleting product: " + result.error);
+      }
     }
   };
 
@@ -49,28 +49,30 @@ export default function ProductsPage() {
     alert(`Viewing: ${product.name}\n\nCategory: ${product.category}\nSeller: ${product.seller}\nPrice: ${product.price}\nStock: ${product.stock}\n\n${product.description}`);
   };
 
-  const handleEdit = (product) => {
-    // For now, show a simple edit dialog. In a real app, you'd navigate to an edit page
+  const handleEdit = async (product) => {
     const newName = prompt("Edit product name:", product.name);
     if (newName && newName !== product.name) {
       const newPrice = prompt("Edit price:", product.price);
       const newStock = prompt("Edit stock:", product.stock.toString());
       if (newPrice && newStock) {
-        const newSeller = prompt("Edit seller name:", product.seller || "");
-        const updatedProducts = products.map(p =>
-          p.id === product.id
-            ? { ...p, name: newName, price: newPrice, stock: parseInt(newStock), seller: newSeller || p.seller }
-            : p
-        );
-        setProducts(updatedProducts);
-        localStorage.setItem("products", JSON.stringify(updatedProducts));
-        alert("Product updated successfully!");
+        const updatedData = {
+          ...product,
+          name: newName,
+          price: Number(newPrice),
+          stock: Number(newStock),
+        };
+        const result = await editProduct(product.id, updatedData, [], product.images || []);
+        if (result.ok) {
+          alert("Product updated successfully!");
+        } else {
+          alert("Error updating product: " + result.error);
+        }
       }
     }
   };
 
   if (showAddForm) {
-    return <AddProductPage onDisplayAll={() => { setShowAddForm(false); setProducts(getAllProducts()); }} />;
+    return <AddProductPage onDisplayAll={() => setShowAddForm(false)} />;
   }
 
   return (

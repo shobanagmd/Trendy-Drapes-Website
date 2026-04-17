@@ -5,7 +5,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ProductCard from "@/components/ProductCard";
 import FilterSidebar from "@/components/FilterSidebar";
-import { products, sortOptions, filterOptions } from "@/data/products";
+import { sortOptions, filterOptions } from "@/data/products";
 import { useLocalProducts } from "@/hooks/useLocalProducts";
 
 const ITEMS_PER_PAGE = 8;
@@ -21,6 +21,7 @@ const Index = () => {
   const [sortOpen, setSortOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+
   const [filters, setFilters] = useState({
     priceRange: [],
     discount: [],
@@ -31,6 +32,7 @@ const Index = () => {
     patterns: [],
   });
 
+
   // Reset page when category changes
   useEffect(() => {
     setCurrentPage(1);
@@ -40,11 +42,8 @@ const Index = () => {
   const activeCategory = categoryParam || "Sarees";
   const pageTitle = activeCategory === "Sale" ? "Sale" : activeCategory;
 
-  // Merge static products with localStorage products
   const allProducts = useMemo(() => {
-    const staticIds = new Set(products.map((p) => p.id));
-    const merged = [...products, ...localProducts.filter((p) => !staticIds.has(p.id))];
-    return merged;
+    return localProducts;
   }, [localProducts]);
 
   // Filter by category
@@ -55,7 +54,7 @@ const Index = () => {
       // Sale: show all products with discount >= 30
       result = result.filter((p) => p.discount >= 30);
     } else {
-      result = result.filter((p) => p.category?.trim() === activeCategory);
+      result = result.filter((p) => p.category?.trim().toLowerCase() === activeCategory.trim().toLowerCase());
     }
 
     // Price range filter
@@ -98,19 +97,12 @@ const Index = () => {
     return result;
   }, [filters, sortBy, allProducts, activeCategory]);
 
-  // Duplicate products to fill pages
+  // Remove the duplication "expansion" for a cleaner view of actual data
   const expandedProducts = useMemo(() => {
-    if (filtered.length === 0) return [];
-    const totalNeeded = TOTAL_PAGES * ITEMS_PER_PAGE;
-    const expanded = [];
-    for (let i = 0; i < totalNeeded; i++) {
-      const original = filtered[i % filtered.length];
-      expanded.push({
-        ...original,
-        _key: `${original.id}-page-${Math.floor(i / filtered.length)}-${i}`,
-      });
-    }
-    return expanded;
+    return filtered.map((product, i) => ({
+      ...product,
+      _key: `${product.id}-${i}`,
+    }));
   }, [filtered]);
 
   const totalPages = Math.min(TOTAL_PAGES, Math.ceil(expandedProducts.length / ITEMS_PER_PAGE));
