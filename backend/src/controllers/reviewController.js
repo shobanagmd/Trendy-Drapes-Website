@@ -46,9 +46,9 @@ exports.addReview = async (req, res) => {
     const order_id = orderCheck.rows.length > 0 ? orderCheck.rows[0].order_id : null;
 
     const reviewRes = await db.query(
-      `INSERT INTO reviews (product_id, customer_id, order_id, rating, comment, is_verified) 
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING review_id`,
-      [product_id, customer_id, order_id, rating, comment, !!order_id]
+      `INSERT INTO reviews (product_id, customer_id, order_id, rating, title, body, is_verified) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING review_id`,
+      [product_id, customer_id, order_id, rating, title || 'Review', comment || '', !!order_id]
     );
 
     const review_id = reviewRes.rows[0].review_id;

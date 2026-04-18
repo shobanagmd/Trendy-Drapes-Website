@@ -51,31 +51,85 @@ exports.createProduct = async (req, res) => {
   const { 
     name, description, sku, price, mrp, stock_quantity, 
     category_id, seller_id, weight, length, breadth, height, brand,
-    images // Expected as array of { url, is_primary, alt_text }
+    fabric, color, work, pattern, ready_to_ship, featured,
+    delivery_charge, additional_charge, is_active
   } = req.body;
 
+  // Seller ID logic: Admin can assign, Seller is auto-assigned
+  const final_seller_id = (req.user.role === 'admin' && seller_id) ? seller_id : req.user.id;
+
   try {
+    await db.query('BEGIN');
+
     const result = await db.query(
       `INSERT INTO products (
         name, description, sku, price, mrp, stock_quantity, 
-        category_id, seller_id, weight, length, breadth, height, brand
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *`,
-      [name, description, sku, price, mrp, stock_quantity, category_id, seller_id, weight, length, breadth, height, brand]
+        category_id, seller_id, weight, length, breadth, height, brand,
+        fabric, color, work, pattern, ready_to_ship, featured,
+        delivery_charge, additional_charge, is_active
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22) RETURNING *`,
+      [
+        name, description, sku, price, mrp, stock_quantity, 
+        category_id, final_seller_id, weight, length, breadth, height, brand,
+        fabric, color, work, pattern, 
+        ready_to_ship === 'true' || ready_to_ship === true, 
+        featured === 'true' || featured === true,
+        delivery_charge || 0, additional_charge || 0, 
+        is_active === 'false' || is_active === false ? false : true
+      ]
     );
 
     const productId = result.rows[0].product_id;
 
-    if (images && images.length > 0) {
-      for (const img of images) {
+    // Handle variants
+    const variantsData = req.body.variants;
+    let variants = [];
+    if (variantsData) {
+      try {
+        variants = typeof variantsData === 'string' ? JSON.parse(variantsData) : variantsData;
+      } catch (e) {
+        console.error("Error parsing variants:", e);
+      }
+    }
+
+    if (variants && Array.isArray(variants)) {
+      for (const variant of variants) {
+        if (variant.sku || variant.variant_name) {
+          await db.query(
+            `INSERT INTO product_variants (
+              product_id, sku, variant_name, variant_value, price, stock_quantity, weight
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+            [
+              productId, 
+              variant.sku || `SKU-${Date.now()}`, 
+              variant.variant_name, 
+              variant.variant_value,
+              variant.price || price, 
+              variant.stock_quantity || 0, 
+              variant.weight || weight
+            ]
+          );
+        }
+      }
+    }
+
+    // Handle files from multer
+    if (req.files && req.files.length > 0) {
+      for (let i = 0; i < req.files.length; i++) {
+        const file = req.files[i];
+        const imageUrl = `/uploads/${file.filename}`;
         await db.query(
-          "INSERT INTO product_images (product_id, image_url, is_primary, alt_text) VALUES ($1, $2, $3, $4)",
-          [productId, img.url, img.is_primary || false, img.alt_text || '']
+          "INSERT INTO product_images (product_id, image_url, is_primary, sort_order) VALUES ($1, $2, $3, $4)",
+          [productId, imageUrl, i === 0, i]
         );
       }
     }
 
+    await db.query('COMMIT');
     res.json({ success: true, product: result.rows[0] });
+
   } catch (err) {
+    await db.query('ROLLBACK');
     console.error(err);
     res.status(500).json({ success: false, message: "Error creating product" });
   }

@@ -1,7 +1,7 @@
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, Link } from "react-router-dom";
 import {
   LayoutDashboard, Package, ShoppingCart, IndianRupee, FileBarChart,
-  UserCircle, Settings, HeadphonesIcon, ChevronLeft, ChevronRight, Store, X, CreditCard, RotateCcw
+  UserCircle, Settings, HeadphonesIcon, ChevronLeft, ChevronRight, Store, X, CreditCard, RotateCcw, Ticket
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -9,6 +9,7 @@ const mainNav = [
   { title: "Dashboard", path: "/admin", icon: LayoutDashboard },
   { title: "Products", path: "/admin/products", icon: Package },
   { title: "Orders", path: "/admin/orders", icon: ShoppingCart },
+  { title: "Coupons", path: "/admin/coupons", icon: Ticket },
   { title: "Payments", path: "/admin/payments", icon: CreditCard },
   { title: "Returns", path: "/admin/returns", icon: RotateCcw },
 ];
@@ -74,15 +75,17 @@ export function DashboardSidebar({ collapsed, onToggle, mobileOpen, onMobileClos
         )}
       >
         <div className="flex h-14 items-center gap-2.5 border-b border-sidebar-border px-3.5">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Store className="h-4 w-4" />
-          </div>
-          {(!collapsed || mobileOpen) && (
-            <div className="min-w-0 flex-1">
-              <span className="block text-sm font-bold text-sidebar-accent-foreground truncate">Trendy Drapes</span>
-              <span className="block text-[10px] text-sidebar-foreground/60 leading-none">Admin Panel</span>
+          <Link to="/" className="flex flex-1 items-center gap-2.5 min-w-0 hover:opacity-80 transition-opacity">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+              <Store className="h-4 w-4" />
             </div>
-          )}
+            {(!collapsed || mobileOpen) && (
+              <div className="min-w-0 flex-1">
+                <span className="block text-sm font-bold text-sidebar-accent-foreground truncate">Trendy Drapes</span>
+                <span className="block text-[10px] text-sidebar-foreground/60 leading-none">Admin Panel</span>
+              </div>
+            )}
+          </Link>
           <button onClick={onMobileClose} className="lg:hidden p-1 text-sidebar-foreground hover:bg-sidebar-accent rounded">
             <X className="h-4 w-4" />
           </button>

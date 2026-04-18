@@ -4,6 +4,7 @@ import { Heart, ShoppingBag, Truck, RotateCcw, Shield, ChevronLeft, ChevronRight
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ProductCard from "@/components/ProductCard";
+import { Input } from "@/components/ui/input";
 /* import { products } from "@/data/products"; */
 import { useLocalProducts } from "@/hooks/useLocalProducts";
 import { useCart } from "@/contexts/CartContext";
@@ -326,6 +327,7 @@ const ProductDetail = () => {
   }, [product]);
 
   const [reviewText,    setReviewText]    = useState("");
+  const [reviewTitle,   setReviewTitle]   = useState("");
   
   // Media upload states for Reviews
   const [reviewLightboxOpen,  setReviewLightboxOpen]  = useState(false);
@@ -381,8 +383,8 @@ const ProductDetail = () => {
       const formData = new FormData();
       formData.append("productId", productId);
       formData.append("rating", reviewRating);
-      formData.append("comment", reviewText.trim());
-      formData.append("title", "");
+      formData.append("body", reviewText.trim());
+      formData.append("title", reviewTitle.trim() || "Review");
       
       reviewMedia.forEach((file) => {
         formData.append("media", file);
@@ -396,6 +398,7 @@ const ProductDetail = () => {
       if (res.ok) {
         toast.success("Review submitted!");
         setReviewText("");
+        setReviewTitle("");
         setReviewRating(5);
         setReviewMedia([]);
         setReviewMediaPreviews([]);
@@ -649,6 +652,12 @@ const ProductDetail = () => {
                     </button>
                   ))}
                 </div>
+                <Input
+                  value={reviewTitle}
+                  onChange={(e) => setReviewTitle(e.target.value)}
+                  placeholder="Review title (e.g. Amazing quality!)"
+                  className="mb-2"
+                />
                 <textarea
                   value={reviewText}
                   onChange={(e) => setReviewText(e.target.value)}
@@ -731,7 +740,8 @@ const ProductDetail = () => {
                       <span className="font-body text-xs text-muted-foreground">{new Date(review.created_at).toLocaleDateString()}</span>
                     </div>
                     <StarRating rating={review.rating} size={14} />
-                    <p className="font-body text-sm text-foreground mt-2 leading-relaxed">{review.comment}</p>
+                    <h4 className="font-body text-sm font-bold text-foreground mt-2">{review.title}</h4>
+                    <p className="font-body text-sm text-foreground mt-1 leading-relaxed">{review.body || review.comment}</p>
                     
                     {review.media && review.media.length > 0 && (
                       <div className="flex flex-wrap gap-2 mt-3">

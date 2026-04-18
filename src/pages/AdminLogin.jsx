@@ -14,14 +14,14 @@ const AdminLogin = () => {
   const { adminLogin } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!username || !password) { setError("Please fill all fields"); return; }
-    const ok = adminLogin(username, password);
-    if (ok) {
+    const res = await adminLogin(username, password);
+    if (res.success) {
       navigate("/admin");
     } else {
-      setError("Invalid admin credentials");
+      setError(res.message || "Invalid admin credentials");
     }
   };
 

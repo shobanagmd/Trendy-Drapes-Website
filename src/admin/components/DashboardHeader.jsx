@@ -6,7 +6,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 
 export function DashboardHeader({ onMenuClick }) {
   const navigate = useNavigate();
-  const { adminLogout } = useAuth();
+  const { logout } = useAuth();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
 
@@ -26,8 +26,8 @@ export function DashboardHeader({ onMenuClick }) {
   const profile = getProfileData();
 
   const handleLogout = () => {
-    adminLogout();
-    navigate("/profile");
+    logout();
+    navigate("/admin-login");
   };
 
   return (

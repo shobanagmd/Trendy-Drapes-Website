@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Upload, X, Plus } from "lucide-react";
-import { useLocalProducts } from "@/hooks/useLocalProducts";
+import { apiFetch } from "@/utils/api";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
 const categoryOptions = ["Sarees", "Bridal", "Lehengas", "Indo-Western", "Jewellery"];
@@ -48,19 +49,44 @@ const selectClass = "flex h-10 w-full rounded-md border border-input bg-backgrou
 
 export default function AddProductPage() {
   const navigate = useNavigate();
-  const { addProduct, clearAllProducts } = useLocalProducts();
+  const { role, user } = useAuth();
   const { toast } = useToast();
 
+  const [categories, setCategories] = useState([]);
+  const [sellers, setSellers] = useState([]);
   const [form, setForm] = useState({
-    name: "", category: "Sarees", subCategory: "", price: "", mrp: "", stock: "",
+    name: "", category_id: "", subCategory: "", sku: "", price: "", mrp: "", stock: "",
     description: "", fabric: "", color: "", work: "", pattern: "",
     sizes: ["Free Size"], images: [], readyToShip: false, featured: false,
     weight: "", length: "", breadth: "", height: "", brand: "",
-    sellingPrice: "", deliveryCharge: "0", addCharge: "0",
-    variantName: "", variantValue: "", isVariant: false, parentProductId: null
+    deliveryCharge: "0", addCharge: "0", is_active: true, seller_id: ""
   });
-  const [errors,     setErrors]     = useState({});
+  const [imagePreviews, setImagePreviews] = useState([]);
+  const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const catRes = await apiFetch("/api/categories");
+        if (catRes.ok) {
+          const catData = await catRes.json();
+          setCategories(catData.categories);
+        }
+
+        if (role === 'admin') {
+          const selRes = await apiFetch("/api/sellers");
+          if (selRes.ok) {
+            const selData = await selRes.json();
+            setSellers(selData.sellers);
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching data:", err);
+      }
+    };
+    fetchData();
+  }, [role]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -73,6 +99,31 @@ export default function AddProductPage() {
     setForm((p) => ({ ...p, subCategory: "", fabric: "", work: "", pattern: "" }));
   };
 
+  const handleImageUpload = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (form.images.length + files.length > 10) {
+      toast({ title: "Too many images", description: "Max 10 images allowed", variant: "destructive" });
+      return;
+    }
+
+    files.forEach((file) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreviews((p) => [...p, reader.result]);
+      };
+      reader.readAsDataURL(file);
+    });
+
+    setForm((p) => ({ ...p, images: [...p.images, ...files] }));
+    if (errors.images) setErrors((p) => ({ ...p, images: "" }));
+    e.target.value = "";
+  };
+
+  const removeImage = (index) => {
+    setForm((p) => ({ ...p, images: p.images.filter((_, i) => i !== index) }));
+    setImagePreviews((p) => p.filter((_, i) => i !== index));
+  };
+
   const toggleSize = (size) => {
     setForm((p) => ({
       ...p,
@@ -80,26 +131,10 @@ export default function AddProductPage() {
     }));
   };
 
-  const handleImageUpload = (e) => {
-    const files = Array.from(e.target.files || []);
-    files.forEach((file) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setForm((p) => ({ ...p, images: [...p.images, reader.result] }));
-        if (errors.images) setErrors((p) => ({ ...p, images: "" }));
-      };
-      reader.readAsDataURL(file);
-    });
-    e.target.value = "";
-  };
-
-  const removeImage = (index) => {
-    setForm((p) => ({ ...p, images: p.images.filter((_, i) => i !== index) }));
-  };
-
   const validate = () => {
     const errs = {};
     if (!form.name.trim())                               errs.name        = "Required";
+    if (!form.category_id)                               errs.category_id = "Required";
     if (!form.subCategory)                               errs.subCategory = "Required";
     if (!form.price || Number(form.price) <= 0)          errs.price       = "Required";
     if (!form.mrp   || Number(form.mrp)   <= 0)          errs.mrp         = "Required";
@@ -107,8 +142,8 @@ export default function AddProductPage() {
     if (!form.stock && form.stock !== "0")               errs.stock       = "Required";
     if (form.images.length === 0)                        errs.images      = "At least one image required";
     if (!form.description.trim())                        errs.description = "Required";
-    if (form.category !== "Jewellery" && !form.fabric)   errs.fabric      = "Required";
     if (!form.color)                                     errs.color       = "Required";
+    if (role === 'admin' && !form.seller_id)             errs.seller_id   = "Required";
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -119,87 +154,66 @@ export default function AddProductPage() {
 
     setSubmitting(true);
 
-    const price    = Number(form.price);
-    const mrp      = Number(form.mrp);
-    const discount = mrp > 0 ? Math.round(((mrp - price) / mrp) * 100) : 0;
-
-    const product = {
-      id:            `local-${Date.now()}`,
-      name:          form.name.trim(),
-      category:      form.category,
-      subCategory:   form.subCategory,
-      price,
-      originalPrice: mrp,
-      mrp,
-      stock:         Number(form.stock),
-      description:   form.description.trim(),
-      image:         form.images[0],
-      images:        form.images,
-      discount,
-      fabric:        form.fabric,
-      color:         form.color,
-      work:          form.work    || "None",
-      pattern:       form.pattern || "Solid",
-      sizes:         form.sizes,
-      readyToShip:   form.readyToShip,
-      featured:      form.featured,
-      weight:        Number(form.weight) || 0,
-      length:        Number(form.length) || 0,
-      breadth:       Number(form.breadth) || 0,
-      height:        Number(form.height) || 0,
-      brand:         form.brand.trim(),
-      sellingPrice:  Number(form.sellingPrice) || price,
-      deliveryCharge:Number(form.deliveryCharge) || 0,
-      addCharge:     Number(form.addCharge) || 0,
-      variantName:   form.variantName,
-      variantValue:  form.variantValue,
-      isVariant:     form.isVariant,
-      parentProductId: form.parentProductId,
-      isNew:         true,
-      isExclusive:   false,
-      tags:          [],
-    };
-
-    // addProduct is now async (compresses images before storing)
-    const result = await addProduct(product);
-
-    setSubmitting(false);
-
-    if (result.ok) {
-      toast({ title: "✅ Product added!", description: `${product.name} has been added successfully.` });
-      navigate("/admin/products");
-      return;
-    }
-
-    if (result.reason === "duplicate") {
-      toast({ title: "Duplicate product", description: "A product with this ID already exists.", variant: "destructive" });
-      return;
-    }
-
-    if (result.reason === "quota") {
-      // Storage is full — offer to clear old products
-      const confirmClear = window.confirm(
-        `⚠️ Storage is full (${result.usedKB} KB used).\n\n` +
-        `This happens because product images are stored in the browser.\n\n` +
-        `Click OK to clear previously added products and try again, or Cancel to keep them.`
-      );
-      if (confirmClear) {
-        clearAllProducts();
-        toast({ title: "Storage cleared", description: "Previous products removed. Please add the product again." });
-      } else {
-        toast({
-          title: "Storage full",
-          description: "Try using smaller images (under 500KB each) or clear browser storage.",
-          variant: "destructive",
-        });
+    try {
+      const formData = new FormData();
+      formData.append("name", form.name);
+      formData.append("description", form.description);
+      formData.append("category_id", form.category_id);
+      formData.append("subCategory", form.subCategory);
+      formData.append("sku", form.sku || `SKU-${Date.now()}`);
+      formData.append("price", form.price);
+      formData.append("mrp", form.mrp);
+      formData.append("stock_quantity", form.stock);
+      formData.append("weight", form.weight || 0);
+      formData.append("length", form.length || 0);
+      formData.append("breadth", form.breadth || 0);
+      formData.append("height", form.height || 0);
+      formData.append("brand", form.brand);
+      formData.append("fabric", form.fabric);
+      formData.append("color", form.color);
+      formData.append("work", form.work);
+      formData.append("pattern", form.pattern);
+      formData.append("ready_to_ship", form.readyToShip);
+      formData.append("featured", form.featured);
+      formData.append("delivery_charge", form.deliveryCharge);
+      formData.append("additional_charge", form.addCharge);
+      formData.append("is_active", form.is_active);
+      
+      if (role === 'admin') {
+        formData.append("seller_id", form.seller_id);
       }
-      return;
-    }
 
-    toast({ title: "Error", description: "Could not save product. Please try again.", variant: "destructive" });
+      // Sizes are sent as JSON string or multi-part
+      formData.append("sizes", JSON.stringify(form.sizes));
+
+      // Images
+      form.images.forEach((file) => {
+        formData.append("images", file);
+      });
+
+      const res = await apiFetch("/api/products", {
+        method: "POST",
+        body: formData
+      });
+
+      if (res.ok) {
+        toast({ title: "✅ Product added!", description: `${form.name} has been added to the database.` });
+        navigate("/admin/products");
+      } else {
+        const errorData = await res.json();
+        toast({ title: "Error", description: errorData.message || "Failed to add product", variant: "destructive" });
+      }
+    } catch (err) {
+      console.error(err);
+      toast({ title: "Error", description: "Connection error. Please try again.", variant: "destructive" });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const currentSubcategories = subcategoryOptions[form.category] || [];
+
+  const selectedCategory = categories.find(c => c.category_id === form.category_id);
+  const currentSubcategories = selectedCategory ? (subcategoryOptions[selectedCategory.name] || []) : [];
 
   return (
     <div className="space-y-5 max-w-3xl">
@@ -225,9 +239,11 @@ export default function AddProductPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-foreground mb-1.5">Category *</label>
-              <select name="category" value={form.category} onChange={handleCategoryChange} className={selectClass}>
-                {categoryOptions.map((c) => <option key={c} value={c}>{c}</option>)}
+              <select name="category_id" value={form.category_id} onChange={handleCategoryChange} className={selectClass}>
+                <option value="">Select category</option>
+                {categories.map((c) => <option key={c.category_id} value={c.category_id}>{c.name}</option>)}
               </select>
+              {errors.category_id && <p className="text-xs text-destructive mt-1">{errors.category_id}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-foreground mb-1.5">Subcategory *</label>
@@ -312,35 +328,51 @@ export default function AddProductPage() {
           </div>
         </div>
 
-        {/* Brand & Variants */}
+        {/* Brand & SKU */}
         <div className="border border-border rounded-lg p-5 space-y-4 bg-card">
-          <h3 className="text-base font-semibold text-foreground">Brand & Variants</h3>
+          <h3 className="text-base font-semibold text-foreground">Brand & Identity</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="sm:col-span-2">
+            <div>
               <label className="block text-sm font-medium text-foreground mb-1.5">Brand Name</label>
               <Input name="brand" value={form.brand} onChange={handleChange} placeholder="e.g. Trendy Drapes Exclusive" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">Variant Name</label>
-              <Input name="variantName" value={form.variantName} onChange={handleChange} placeholder="e.g. Color, Material" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">Variant Value</label>
-              <Input name="variantValue" value={form.variantValue} onChange={handleChange} placeholder="e.g. Red, Silk" />
+              <label className="block text-sm font-medium text-foreground mb-1.5">SKU (Stock Keeping Unit)</label>
+              <Input name="sku" value={form.sku} onChange={handleChange} placeholder="e.g. TD-SILK-001" />
             </div>
           </div>
         </div>
+
+        {/* Seller Selection (Admin Only) */}
+        {role === 'admin' && (
+          <div className="border border-border rounded-lg p-5 space-y-4 bg-card">
+            <h3 className="text-base font-semibold text-foreground">Seller Assignment</h3>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">Select Seller *</label>
+              <select name="seller_id" value={form.seller_id} onChange={handleChange} className={selectClass}>
+                <option value="">Select a seller</option>
+                {sellers.map((s) => (
+                  <option key={s.seller_id} value={s.seller_id}>
+                    {s.full_name} ({s.store_name || 'No Store Name'})
+                  </option>
+                ))}
+              </select>
+              {errors.seller_id && <p className="text-xs text-destructive mt-1">{errors.seller_id}</p>}
+            </div>
+          </div>
+        )}
+
 
         {/* Product Details */}
         <div className="border border-border rounded-lg p-5 space-y-4 bg-card">
           <h3 className="text-base font-semibold text-foreground">Product Details</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {form.category !== "Jewellery" && (
+            {selectedCategory?.name !== "Jewellery" && (
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1.5">Fabric *</label>
                 <select name="fabric" value={form.fabric} onChange={handleChange} className={selectClass}>
                   <option value="">Select fabric</option>
-                  {(fabricOptions[form.category] || []).map((f) => <option key={f} value={f}>{f}</option>)}
+                  {(fabricOptions[selectedCategory?.name] || []).map((f) => <option key={f} value={f}>{f}</option>)}
                 </select>
                 {errors.fabric && <p className="text-xs text-destructive mt-1">{errors.fabric}</p>}
               </div>
@@ -357,14 +389,14 @@ export default function AddProductPage() {
               <label className="block text-sm font-medium text-foreground mb-1.5">Work</label>
               <select name="work" value={form.work} onChange={handleChange} className={selectClass}>
                 <option value="">Select work type</option>
-                {(workOptions[form.category] || []).map((w) => <option key={w} value={w}>{w}</option>)}
+                {(workOptions[selectedCategory?.name] || []).map((w) => <option key={w} value={w}>{w}</option>)}
               </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-foreground mb-1.5">Pattern</label>
               <select name="pattern" value={form.pattern} onChange={handleChange} className={selectClass}>
                 <option value="">Select pattern</option>
-                {(patternOptions[form.category] || []).map((p) => <option key={p} value={p}>{p}</option>)}
+                {(patternOptions[selectedCategory?.name] || []).map((p) => <option key={p} value={p}>{p}</option>)}
               </select>
             </div>
           </div>
@@ -392,7 +424,7 @@ export default function AddProductPage() {
             <p className="text-xs text-muted-foreground">Images are auto-compressed before saving</p>
           </div>
           <div className="flex flex-wrap gap-3">
-            {form.images.map((img, i) => (
+            {imagePreviews.map((img, i) => (
               <div key={i} className="relative w-24 h-28 rounded-md overflow-hidden border border-border bg-secondary group">
                 <img src={img} alt={`Preview ${i + 1}`} className="w-full h-full object-cover" />
                 <button type="button" onClick={() => removeImage(i)}
@@ -423,6 +455,11 @@ export default function AddProductPage() {
               <input type="checkbox" name="featured" checked={form.featured} onChange={handleChange}
                 className="w-4 h-4 rounded border-input text-primary focus:ring-primary" />
               <span className="text-sm text-foreground">Featured Product</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" name="is_active" checked={form.is_active} onChange={handleChange}
+                className="w-4 h-4 rounded border-input text-primary focus:ring-primary" />
+              <span className="text-sm text-foreground">Is Active (Visible on site)</span>
             </label>
           </div>
         </div>

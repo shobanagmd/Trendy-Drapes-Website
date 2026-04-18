@@ -27,6 +27,10 @@ exports.addToCart = async (req, res) => {
   const { product_id, size, quantity } = req.body;
 
   try {
+    if (req.user.role !== 'customer') {
+      return res.status(403).json({ success: false, message: "Only customers can have an online cart." });
+    }
+
     let cartRes = await db.query("SELECT cart_id FROM carts WHERE customer_id = $1", [customer_id]);
     let cart_id;
     if (cartRes.rows.length === 0) {

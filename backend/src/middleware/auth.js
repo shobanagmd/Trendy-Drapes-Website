@@ -10,7 +10,11 @@ const authenticateToken = (req, res, next) => {
   if (!token) return res.status(401).json({ success: false, message: "No token provided" });
 
   jwt.verify(token, SECRET_KEY, (err, decoded) => {
-    if (err) return res.status(403).json({ success: false, message: "Forbidden: Token invalid or expired" });
+    if (err) {
+      console.error("[AuthMiddleware] JWT Verification Error:", err.message);
+      const message = err.name === 'TokenExpiredError' ? "Session expired. Please log in again." : "Invalid session. Please log in again.";
+      return res.status(403).json({ success: false, message });
+    }
     
     // UUID VALIDATION: Protect against legacy IDs in existing tokens after migration
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

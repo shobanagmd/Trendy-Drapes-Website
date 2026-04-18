@@ -1,16 +1,22 @@
 const { Pool } = require('pg');
+
 const pool = new Pool({
-  connectionString: "postgresql://postgres:Shobana@805@localhost:5432/local_db"
+  user: 'postgres',
+  host: 'localhost',
+  database: 'local_db',
+  password: 'Shobana@805',
+  port: 5432,
 });
 
-async function run() {
+async function checkCategories() {
   try {
-    const res = await pool.query("SELECT category_id, name FROM categories");
+    const res = await pool.query("SELECT * FROM categories");
     console.log(JSON.stringify(res.rows, null, 2));
+    process.exit(0);
   } catch (err) {
-    console.error(err);
-  } finally {
-    pool.end();
+    console.error("Error checking categories:", err);
+    process.exit(1);
   }
 }
-run();
+
+checkCategories();

@@ -13,7 +13,7 @@ import {
    - base64 / http URL  → <img>
    - emoji string       → styled emoji tile
    - missing           → package icon placeholder
-*/
+ */
 function ProductImage({ src, name, size = 40 }) {
   const [imgError, setImgError] = useState(false);
 
@@ -230,114 +230,6 @@ export default function DashboardHome() {
       <div className="page-header">
         <h1 className="page-title">Store Dashboard</h1>
         <p className="page-subtitle">Your store overview and real-time analytics</p>
-      </div>
-
-      {/* Product Search & Database Section */}
-      <div className="rounded-xl border bg-card shadow-sm overflow-hidden mb-6">
-        <div className="p-4 bg-secondary/10 border-b border-border/50">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            <div className="relative w-full lg:max-w-md flex items-center">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-              <Input
-                placeholder="Search products by name or category..."
-                className="pl-9 bg-background h-9 text-sm border-border/70 w-full"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {[
-                { value: category, setter: setCategory, options: uniqueCategories },
-                { value: status,   setter: setStatus,   options: ["All", "Active", "Out of Stock"] },
-                { value: stockLevel, setter: setStockLevel, options: ["All", "Low Stock", "Medium Stock", "High Stock"] },
-                { value: dateSort, setter: setDateSort, options: ["Newest First", "Oldest First"] },
-              ].map((sel, i) => (
-                <select
-                  key={i}
-                  className="h-9 rounded-md border border-border/70 bg-background px-3 text-xs text-foreground shadow-sm focus:outline-none focus:ring-1 focus:ring-primary/40"
-                  value={sel.value}
-                  onChange={(e) => sel.setter(e.target.value)}
-                >
-                  {sel.options.map(o => <option key={o}>{o}</option>)}
-                </select>
-              ))}
-            </div>
-          </div>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="data-table">
-            <thead>
-              <tr className="bg-secondary/30">
-                <th className="w-16 pl-5 text-left"></th>
-                <th className="text-center min-w-[180px]">Product Name</th>
-                <th className="text-left px-4">Category</th>
-                <th className="text-left px-4">Seller</th>
-                <th className="text-right px-4">Price</th>
-                <th className="text-right px-4">Stock</th>
-                <th className="text-left pl-6 pr-4">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredProducts.length > 0 ? filteredProducts.map(p => (
-                <tr key={p.id} className="align-middle hover:bg-secondary/20 transition-colors">
-                  <td className="py-3 pl-5 pr-2">
-                    <ProductImage src={p.image} name={p.name} size={42} />
-                  </td>
-                  <td className="text-center py-3">
-                    <div className="inline-block text-left max-w-full">
-                      <p className="font-semibold text-card-foreground text-sm">{p.name}</p>
-                      {p.description && (
-                        <p className="text-[10px] text-muted-foreground truncate max-w-[180px] mt-0.5 mx-auto">{p.description}</p>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-left">
-                    {p.category
-                      ? <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-secondary/80 text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">{p.category}</span>
-                      : <span className="text-muted-foreground text-xs">—</span>
-                    }
-                  </td>
-                  <td className="px-4 py-3 text-left">
-                    <span className="text-card-foreground font-medium text-xs">{p.seller || "—"}</span>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex flex-col items-end">
-                      <p className="text-card-foreground font-bold text-sm">
-                        {String(p.price).startsWith("$") || String(p.price).startsWith("₹")
-                          ? p.price
-                          : `₹${Number(p.price).toLocaleString("en-IN")}`}
-                      </p>
-                      {p.mrp && (
-                        <p className="text-[10px] text-muted-foreground line-through decoration-muted-foreground/50">
-                          {String(p.mrp).startsWith("$") || String(p.mrp).startsWith("₹")
-                            ? p.mrp
-                            : `₹${Number(p.mrp).toLocaleString("en-IN")}`}
-                        </p>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <span className={`tabular-nums font-semibold text-sm ${Number(p.stock) < 10 ? 'text-destructive' : 'text-card-foreground'}`}>
-                      {p.stock}
-                    </span>
-                  </td>
-                  <td className="pl-6 pr-4 py-3 text-left">
-                    <span className={p.status === "Active" ? "badge-success" : "badge-danger"}>{p.status}</span>
-                  </td>
-                </tr>
-              )) : (
-                <tr>
-                  <td colSpan={6} className="text-center text-muted-foreground py-10">
-                    <div className="flex flex-col items-center gap-2">
-                      <Package className="h-8 w-8 text-muted-foreground/40" />
-                      <p className="text-sm">No products found.</p>
-                    </div>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
       </div>
 
       {/* Primary KPI Cards */}
@@ -583,6 +475,114 @@ export default function DashboardHome() {
               </div>
             ))}
           </div>
+        </div>
+      </div>
+
+      {/* Product Search & Database Section (Moved to Bottom) */}
+      <div className="rounded-xl border bg-card shadow-sm overflow-hidden mt-6">
+        <div className="p-4 bg-secondary/10 border-b border-border/50">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div className="relative w-full lg:max-w-md flex items-center">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+              <Input
+                placeholder="Search products by name or category..."
+                className="pl-9 bg-background h-9 text-sm border-border/70 w-full"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {[
+                { value: category, setter: setCategory, options: uniqueCategories },
+                { value: status,   setter: setStatus,   options: ["All", "Active", "Out of Stock"] },
+                { value: stockLevel, setter: setStockLevel, options: ["All", "Low Stock", "Medium Stock", "High Stock"] },
+                { value: dateSort, setter: setDateSort, options: ["Newest First", "Oldest First"] },
+              ].map((sel, i) => (
+                <select
+                  key={i}
+                  className="h-9 rounded-md border border-border/70 bg-background px-3 text-xs text-foreground shadow-sm focus:outline-none focus:ring-1 focus:ring-primary/40"
+                  value={sel.value}
+                  onChange={(e) => sel.setter(e.target.value)}
+                >
+                  {sel.options.map(o => <option key={o}>{o}</option>)}
+                </select>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="data-table">
+            <thead>
+              <tr className="bg-secondary/30">
+                <th className="w-16 pl-5 text-left"></th>
+                <th className="text-center min-w-[180px]">Product Name</th>
+                <th className="text-left px-4">Category</th>
+                <th className="text-left px-4">Seller</th>
+                <th className="text-right px-4">Price</th>
+                <th className="text-right px-4">Stock</th>
+                <th className="text-left pl-6 pr-4">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredProducts.length > 0 ? filteredProducts.map(p => (
+                <tr key={p.id} className="align-middle hover:bg-secondary/20 transition-colors">
+                  <td className="py-3 pl-5 pr-2">
+                    <ProductImage src={p.image} name={p.name} size={42} />
+                  </td>
+                  <td className="text-center py-3">
+                    <div className="inline-block text-left max-w-full">
+                      <p className="font-semibold text-card-foreground text-sm">{p.name}</p>
+                      {p.description && (
+                        <p className="text-[10px] text-muted-foreground truncate max-w-[180px] mt-0.5 mx-auto">{p.description}</p>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-left">
+                    {p.category
+                      ? <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-secondary/80 text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">{p.category}</span>
+                      : <span className="text-muted-foreground text-xs">—</span>
+                    }
+                  </td>
+                  <td className="px-4 py-3 text-left">
+                    <span className="text-card-foreground font-medium text-xs">{p.seller || "—"}</span>
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <div className="flex flex-col items-end">
+                      <p className="text-card-foreground font-bold text-sm">
+                        {String(p.price).startsWith("$") || String(p.price).startsWith("₹")
+                          ? p.price
+                          : `₹${Number(p.price).toLocaleString("en-IN")}`}
+                      </p>
+                      {p.mrp && (
+                        <p className="text-[10px] text-muted-foreground line-through decoration-muted-foreground/50">
+                          {String(p.mrp).startsWith("$") || String(p.mrp).startsWith("₹")
+                            ? p.mrp
+                            : `₹${Number(p.mrp).toLocaleString("en-IN")}`}
+                        </p>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <span className={`tabular-nums font-semibold text-sm ${Number(p.stock) < 10 ? 'text-destructive' : 'text-card-foreground'}`}>
+                      {p.stock}
+                    </span>
+                  </td>
+                  <td className="pl-6 pr-4 py-3 text-left">
+                    <span className={p.status === "Active" ? "badge-success" : "badge-danger"}>{p.status}</span>
+                  </td>
+                </tr>
+              )) : (
+                <tr>
+                  <td colSpan={6} className="text-center text-muted-foreground py-10">
+                    <div className="flex flex-col items-center gap-2">
+                      <Package className="h-8 w-8 text-muted-foreground/40" />
+                      <p className="text-sm">No products found.</p>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

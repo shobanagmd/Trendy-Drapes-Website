@@ -14,6 +14,8 @@ import {
   CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend
 } from "recharts";
 import { products as staticProducts } from "../../data/products";
+import AddProductPage from "../../admin/pages/AddProductPage";
+import CouponsPage from "../../admin/pages/CouponsPage";
 
 // ─── DUMMY DATA ──────────────────────────────────────────────────────────────
 
@@ -179,7 +181,7 @@ const Skeleton = ({ w = "100%", h = 20, r = 8 }) => (
   const navigate = useNavigate();
   useEffect(() => {
     const pathname = location.pathname.replace(/^\/seller\//, "") || "dashboard";
-    const validPages = ["dashboard","products","orders","analytics","notifications","payments","reviews","settings"];
+    const validPages = ["dashboard","products","orders","analytics","notifications","payments","reviews","settings", "coupons"];
     if (validPages.includes(pathname)) {
       setPage(pathname);
     }
@@ -204,6 +206,7 @@ const Skeleton = ({ w = "100%", h = 20, r = 8 }) => (
     { id: "products", label: "Products", icon: Package },
     { id: "orders", label: "Orders", icon: ShoppingCart },
     { id: "analytics", label: "Analytics", icon: BarChart2 },
+    { id: "coupons", label: "Coupons", icon: Tag },
     { id: "notifications", label: "Notifications", icon: MessageSquare, badge: messages.filter(m => m.unread).length },
     { id: "payments", label: "Payments", icon: CreditCard },
     { id: "reviews", label: "Reviews", icon: Star },
@@ -219,6 +222,7 @@ const Skeleton = ({ w = "100%", h = 20, r = 8 }) => (
       case "products": return <ProductsPage {...props} />;
       case "orders": return <OrdersPage {...props} />;
       case "analytics": return <AnalyticsPage {...props} />;
+      case "coupons": return <CouponsPage />;
       case "notifications": return <MessagesPage {...props} />;
       case "payments": return <PaymentsPage {...props} D={D} />;
       case "reviews": return <ReviewsPage {...props} />;
@@ -569,8 +573,17 @@ function ProductsPage({ products, setProducts, D, loading, orders = [] }) {
     status: "active",
     description: "",
     sku: "",
+    mrp: "",
+    weight: "",
+    length: "",
+    breadth: "",
+    height: "",
+    brand: "",
+    delivery_charge: "0",
+    additional_charge: "0",
     imagePreview: null,
-    imageData: null
+    imageData: null,
+    variants: []
   });
   const [view, setView] = useState("table");
   const fileInputRef = useRef(null);
@@ -679,6 +692,28 @@ function ProductsPage({ products, setProducts, D, loading, orders = [] }) {
     }
   });
 
+  const addVariant = () => {
+    setForm(p => ({
+      ...p,
+      variants: [...(p.variants || []), { sku: "", variant_name: "", variant_value: "", price: p.price, stock_quantity: p.stock, weight: p.weight }]
+    }));
+  };
+
+  const removeVariant = (index) => {
+    setForm(p => ({
+      ...p,
+      variants: (p.variants || []).filter((_, i) => i !== index)
+    }));
+  };
+
+  const updateVariant = (index, field, value) => {
+    setForm(p => {
+      const newVariants = [...(p.variants || [])];
+      newVariants[index] = { ...newVariants[index], [field]: value };
+      return { ...p, variants: newVariants };
+    });
+  };
+
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -705,8 +740,17 @@ function ProductsPage({ products, setProducts, D, loading, orders = [] }) {
       status: "active",
       description: "",
       sku: "",
+      mrp: "",
+      weight: "",
+      length: "",
+      breadth: "",
+      height: "",
+      brand: "",
+      delivery_charge: "0",
+      additional_charge: "0",
       imagePreview: null,
-      imageData: null
+      imageData: null,
+      variants: []
     }); 
     setShowModal(true); 
   };
@@ -723,8 +767,17 @@ function ProductsPage({ products, setProducts, D, loading, orders = [] }) {
       status: p.status || "active",
       description: p.description || "",
       sku: p.sku || "",
+      mrp: p.mrp || p.price || "",
+      weight: p.weight || "",
+      length: p.length || "",
+      breadth: p.breadth || "",
+      height: p.height || "",
+      brand: p.brand || "",
+      delivery_charge: p.delivery_charge || "0",
+      additional_charge: p.additional_charge || "0",
       imagePreview: p.imagePreview || null,
-      imageData: p.imageData || null
+      imageData: p.imageData || null,
+      variants: p.variants || []
     }); 
     setShowModal(true); 
   };
@@ -756,8 +809,17 @@ function ProductsPage({ products, setProducts, D, loading, orders = [] }) {
           status: form.status,
           description: form.description,
           sku: form.sku,
+          mrp: +form.mrp || +form.price,
+          weight: form.weight,
+          length: form.length,
+          breadth: form.breadth,
+          height: form.height,
+          brand: form.brand,
+          delivery_charge: +form.delivery_charge,
+          additional_charge: +form.additional_charge,
           imageData: form.imageData,
-          imagePreview: form.imagePreview
+          imagePreview: form.imagePreview,
+          variants: form.variants || []
         } : p);
         localStorage.setItem("products", JSON.stringify(newList));
         return newList;
@@ -773,11 +835,19 @@ function ProductsPage({ products, setProducts, D, loading, orders = [] }) {
         rating: 4.5,
         description: form.description || "",
         sku: form.sku || "",
+        mrp: +form.mrp || +form.price,
+        weight: form.weight || null,
+        length: form.length || null,
+        breadth: form.breadth || null,
+        height: form.height || null,
+        brand: form.brand || "",
+        delivery_charge: +form.delivery_charge || 0,
+        additional_charge: +form.additional_charge || 0,
         imageData: form.imageData || null,
         imagePreview: form.imagePreview || null,
         status: "active",
-        category: form.category.toLowerCase().trim(),
-        subcategory: (form.subcategory || "").toLowerCase().trim()
+        subcategory: (form.subcategory || "").toLowerCase().trim(),
+        variants: form.variants || []
       };
       
       const existing = JSON.parse(localStorage.getItem("products")) || [];
@@ -1275,8 +1345,19 @@ function ProductsPage({ products, setProducts, D, loading, orders = [] }) {
         )}
       </div>
 
-      {showModal && (
-        <Modal title={editProduct ? "Edit Product" : "Add Product"} onClose={() => setShowModal(false)} D={D}>
+      {showModal && !editProduct && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,0.5)", overflowY: "auto", padding: "40px 20px" }}>
+          <div style={{ background: D.bg, margin: "0 auto", maxWidth: 900, borderRadius: 16, padding: 30, position: "relative" }}>
+            <button onClick={() => setShowModal(false)} style={{ position: "absolute", top: 20, right: 20, background: D.card, border: `1px solid ${D.border}`, borderRadius: "50%", width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", zIndex: 10 }}>
+              <X size={16} color={D.text} />
+            </button>
+            <AddProductPage source="seller" onDisplayAll={() => setShowModal(false)} />
+          </div>
+        </div>
+      )}
+
+      {showModal && editProduct && (
+        <Modal title="Edit Product" onClose={() => setShowModal(false)} D={D}>
           {[
             { label: "Product Name", key: "name", type: "text", placeholder: "e.g. 22K Gold Bangles Set" },
             { label: "Price (₹)", key: "price", type: "number", placeholder: "e.g. 42500" },
@@ -1296,6 +1377,44 @@ function ProductsPage({ products, setProducts, D, loading, orders = [] }) {
           <div style={{ marginBottom: 4 }}>
             <label style={{ fontSize: 12, fontWeight: 600, color: D.muted, display: "block", marginBottom: 6 }}>Product Description</label>
             <textarea value={form.description || ""} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Describe your product details, features, specifications..." rows="4" style={{ ...styles.input(D), width: "100%", resize: "vertical", fontFamily: "inherit" }} />
+          </div>
+
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: D.muted }}>Product Variants</label>
+              <button onClick={addVariant} style={{ background: "transparent", border: "1px solid #C9A14A", color: "#C9A14A", fontSize: 11, padding: "2px 8px", borderRadius: 4, cursor: "pointer" }}>+ Add Variant</button>
+            </div>
+            
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {(form.variants || []).map((v, i) => (
+                <div key={i} style={{ background: i % 2 === 0 ? "rgba(0,0,0,0.02)" : "transparent", padding: 12, borderRadius: 8, border: `1px solid ${D.border}`, position: "relative" }}>
+                  <button onClick={() => removeVariant(i)} style={{ position: "absolute", top: 4, right: 4, background: "rgba(239,68,68,0.1)", color: "#ef4444", border: "none", borderRadius: "50%", width: 18, height: 18, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 10 }}>×</button>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                    <div>
+                      <label style={{ fontSize: 9, fontWeight: 600, color: D.muted, display: "block", marginBottom: 3 }}>NAME (e.g. Size)</label>
+                      <input value={v.variant_name} onChange={e => updateVariant(i, "variant_name", e.target.value)} placeholder="Size" style={{ ...styles.input(D), width: "100%", padding: "4px 8px", fontSize: 11 }} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: 9, fontWeight: 600, color: D.muted, display: "block", marginBottom: 3 }}>VALUE (e.g. XL)</label>
+                      <input value={v.variant_value} onChange={e => updateVariant(i, "variant_value", e.target.value)} placeholder="XL" style={{ ...styles.input(D), width: "100%", padding: "4px 8px", fontSize: 11 }} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: 9, fontWeight: 600, color: D.muted, display: "block", marginBottom: 3 }}>SKU</label>
+                      <input value={v.sku} onChange={e => updateVariant(i, "sku", e.target.value)} placeholder="SKU-XL" style={{ ...styles.input(D), width: "100%", padding: "4px 8px", fontSize: 11 }} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: 9, fontWeight: 600, color: D.muted, display: "block", marginBottom: 3 }}>PRICE</label>
+                      <input type="number" value={v.price} onChange={e => updateVariant(i, "price", e.target.value)} style={{ ...styles.input(D), width: "100%", padding: "4px 8px", fontSize: 11 }} />
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {(form.variants || []).length === 0 && (
+                <div style={{ textAlign: "center", padding: "12px", border: `1px dashed ${D.border}`, borderRadius: 8 }}>
+                  <span style={{ fontSize: 11, color: D.muted }}>No variants added</span>
+                </div>
+              )}
+            </div>
           </div>
           
           <div style={{ marginBottom: 4 }}>
@@ -1339,7 +1458,7 @@ function ProductsPage({ products, setProducts, D, loading, orders = [] }) {
           
           <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
             <button onClick={() => setShowModal(false)} style={{ ...styles.outlineBtn(D), flex: 1 }}>Cancel</button>
-            <button onClick={saveProduct} style={{ ...styles.goldBtn, flex: 1, justifyContent: "center" }}>{editProduct ? "Save Changes" : "Add Product"}</button>
+            <button onClick={saveProduct} style={{ ...styles.goldBtn, flex: 1, justifyContent: "center" }}>Save Changes</button>
           </div>
         </Modal>
       )}

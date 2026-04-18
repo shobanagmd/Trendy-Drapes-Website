@@ -55,6 +55,13 @@ export const useLocalProducts = () => {
           sizes: p.sizes || [],
           readyToShip: p.ready_to_ship,
           featured: p.featured,
+          weight: p.weight,
+          length: p.length,
+          breadth: p.breadth,
+          height: p.height,
+          brand: p.brand,
+          deliveryCharge: p.delivery_charge,
+          additionalCharge: p.additional_charge,
           isNew: true
         }));
 
@@ -96,6 +103,15 @@ export const useLocalProducts = () => {
       formData.append("pattern", product.pattern);
       formData.append("readyToShip", product.readyToShip);
       formData.append("featured", product.featured);
+      
+      // New schema alignment fields
+      formData.append("weight", product.weight || "");
+      formData.append("length", product.length || "");
+      formData.append("breadth", product.breadth || "");
+      formData.append("height", product.height || "");
+      formData.append("brand", product.brand || "");
+      formData.append("delivery_charge", product.deliveryCharge || 0);
+      formData.append("additional_charge", product.additionalCharge || 0);
       
       if (Array.isArray(product.sizes)) {
         product.sizes.forEach(size => formData.append("sizes", size));
@@ -164,6 +180,15 @@ export const useLocalProducts = () => {
       formData.append("pattern", product.pattern);
       formData.append("readyToShip", product.readyToShip);
       formData.append("featured", product.featured);
+      
+      // New schema alignment fields
+      formData.append("weight", product.weight || "");
+      formData.append("length", product.length || "");
+      formData.append("breadth", product.breadth || "");
+      formData.append("height", product.height || "");
+      formData.append("brand", product.brand || "");
+      formData.append("delivery_charge", product.deliveryCharge || 0);
+      formData.append("additional_charge", product.additionalCharge || 0);
       
       // Clean up existing images: remove the backend prefix if present
       const cleanedExisting = existingImages.map(img => {

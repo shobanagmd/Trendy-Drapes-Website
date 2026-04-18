@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiFetch } from "@/utils/api";
@@ -8,11 +8,7 @@ import { Lock, ChevronDown, ChevronUp, Tag, Truck, ShieldCheck, CreditCard, Smar
 
 // ── GST rate ──────────────────────────────────────────────────
 const GST_RATE = 0.05; // 5%
-const COUPONS = {
-  TRENDY10:  { type: 'percent', value: 10,  label: '10% off' },
-  FIRST50:   { type: 'flat',    value: 50,  label: '₹50 off' },
-  SAVE100:   { type: 'flat',    value: 100, label: '₹100 off (orders above ₹999)' },
-};
+// Dynamic coupons will be fetched from the backend
 
 // ── Helpers ───────────────────────────────────────────────────
 const fmt = (n) => Number(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -46,6 +42,8 @@ const sendOrderEmail = (delivery, items, totals, orderId) => {
   const templateParams = {
     name: delivery.name,
     email: delivery.email,
+    to_email: delivery.email, // Explicit recipient variable
+    customer_email: delivery.email, // Common alias
     phone: delivery.phone,
     door: delivery.door,
     street: delivery.street,
@@ -76,28 +74,55 @@ const sendOrderEmail = (delivery, items, totals, orderId) => {
 };
 
 // ── Step indicator ────────────────────────────────────────────
-const StepBar = ({ step }) => (
-  <div className="flex items-center justify-center gap-0 p-8 sm:p-10 bg-white border-b border-[#ecdec8] mb-10">
-    {['Delivery', 'Payment', 'Confirm'].map((s, i) => (
-      <React.Fragment key={s}>
-        <div className={`flex items-center gap-3 text-[0.9rem] font-semibold tracking-wider transition-colors ${
-          step === i + 1 ? 'text-[#c47c1a]' : step > i + 1 ? 'text-[#4caf50]' : 'text-[#bba98a]'
-        }`}>
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-[0.85rem] font-bold shrink-0 transition-all duration-300 ${
-            step === i + 1 ? 'bg-[#c47c1a] text-white shadow-[0_0_0_4px_rgba(196,124,26,0.15)] ring-1 ring-[#c47c1a]' : 
-            step > i + 1 ? 'bg-[#4caf50] text-white' : 'bg-[#fdf8f2] text-[#bba98a] border border-[#ecdec8]'
-          }`}>
-            {step > i + 1 ? <CheckCircle2 size={18} /> : i + 1}
+// Removed legacy StepBar in favor of Amazon-style accordion headers.
+
+// ── Step Section Wrapper ──────────────────────────────────────
+const StepSection = ({ step, currentStep, title, summary, onEdit, children, icon: Icon }) => {
+  const isCompleted = currentStep > step;
+  const isActive = currentStep === step;
+
+  return (
+    <div className={`mb-6 overflow-hidden transition-all duration-500 ${isActive ? 'scale-[1.01] z-10' : 'scale-100 z-0'}`}>
+      <div className={`bg-white rounded-[24px] border ${isActive ? 'border-[#c47c1a] shadow-[0_20px_50px_rgba(180,120,0,0.12)] ring-2 ring-[#c47c1a]/10' : 'border-[#ecdec8] shadow-[0_8px_30px_rgba(180,120,0,0.04)]'} overflow-hidden transition-all duration-500`}>
+        {/* Header */}
+        <div className={`flex justify-between items-center px-8 py-6 ${isCompleted ? 'bg-[#fdf9f4]' : 'bg-white'} border-b border-[#f3e6d3] transition-colors`}>
+          <div className="flex items-center gap-4">
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[0.85rem] font-black transition-all duration-500 ${
+              isCompleted ? 'bg-[#4caf50] text-white' : isActive ? 'bg-[#c47c1a] text-white shadow-lg' : 'bg-[#f3e6d3] text-[#7a4f1e]'
+            }`}>
+              {isCompleted ? <CheckCircle2 size={16} /> : step}
+            </div>
+            <div>
+              <h3 className={`font-display text-[0.95rem] font-bold tracking-[0.15em] uppercase m-0 ${isActive ? 'text-[#7a4f1e]' : 'text-[#bba98a]'}`}>
+                {title}
+              </h3>
+              {isCompleted && summary && (
+                <p className="text-[0.8rem] text-[#5a3a1a] font-medium m-0 mt-1 animate-fade-in truncate max-w-[300px] sm:max-w-md">
+                  {summary}
+                </p>
+              )}
+            </div>
           </div>
-          <span className="hidden sm:inline font-display">{s}</span>
+          {isCompleted && (
+            <button 
+              onClick={onEdit}
+              className="px-4 py-2 text-[0.7rem] font-black text-[#c47c1a] border border-[#c47c1a]/20 rounded-lg uppercase tracking-widest hover:bg-[#c47c1a] hover:text-white transition-all active:scale-95"
+            >
+              Change
+            </button>
+          )}
         </div>
-        {i < 2 && (
-          <div className={`w-16 sm:w-24 h-[1.5px] mx-3 transition-colors duration-500 ${step > i + 1 ? 'bg-[#4caf50]' : 'bg-[#ecdec8]'}`} />
+
+        {/* Content */}
+        {isActive && (
+          <div className="p-8 sm:p-10 animate-fade-in">
+            {children}
+          </div>
         )}
-      </React.Fragment>
-    ))}
-  </div>
-);
+      </div>
+    </div>
+  );
+};
 
 // ── Section wrapper ───────────────────────────────────────────
 const Section = ({ title, children }) => (
@@ -111,8 +136,8 @@ const Section = ({ title, children }) => (
 
 // ── Field ─────────────────────────────────────────────────────
 const Field = ({ label, error, children }) => (
-  <div className="mb-6 last:mb-0">
-    <label className="block text-[0.8rem] font-bold text-[#9a7850] tracking-[0.15em] uppercase mb-2.5 ml-1">{label}</label>
+  <div className="mb-4 last:mb-0">
+    <label className="block text-[0.8rem] font-bold text-[#9a7850] tracking-[0.15em] uppercase mb-1.5 ml-1">{label}</label>
     {children}
     {error && (
       <span className="flex items-center gap-1.5 text-[0.75rem] font-medium text-red-500 mt-2 ml-1">
@@ -125,7 +150,7 @@ const Field = ({ label, error, children }) => (
 // ════════════════════════════════════════════════════════════
 //  ORDER SUMMARY (right column)
 // ════════════════════════════════════════════════════════════
-const OrderSummary = ({ cartItems, couponCode, setCouponCode, couponApplied, setCouponApplied, couponError, setCouponError }) => {
+const OrderSummary = ({ cartItems, couponCode, setCouponCode, couponApplied, setCouponApplied, couponError, setCouponError, appliedCouponData, setAppliedCouponData }) => {
   const [open, setOpen] = useState(true);
   const [inputCode, setInputCode] = useState(couponCode);
 
@@ -136,25 +161,40 @@ const OrderSummary = ({ cartItems, couponCode, setCouponCode, couponApplied, set
   const gst       = subtotal * GST_RATE;
 
   let couponDisc = 0;
-  if (couponApplied && COUPONS[couponApplied]) {
-    const c = COUPONS[couponApplied];
-    if (c.type === 'percent') couponDisc = subtotal * c.value / 100;
-    else if (c.type === 'flat') {
-      if (couponApplied === 'SAVE100' && subtotal < 999) couponDisc = 0;
-      else couponDisc = c.value;
+  if (couponApplied && appliedCouponData) {
+    const c = appliedCouponData;
+    couponDisc = (subtotal * c.discount_percent) / 100;
+    if (c.max_discount && couponDisc > c.max_discount) {
+      couponDisc = c.max_discount;
     }
   }
 
   const total = subtotal + delivery + platformFee + gst - couponDisc;
 
-  const handleApplyCoupon = () => {
+  const handleApplyCoupon = async () => {
     const code = inputCode.trim().toUpperCase();
     if (!code) { setCouponError('Enter a coupon code'); return; }
-    if (!COUPONS[code]) { setCouponError('Invalid coupon code'); setCouponApplied(''); return; }
-    if (code === 'SAVE100' && subtotal < 999) { setCouponError('Minimum order ₹999 required for SAVE100'); setCouponApplied(''); return; }
-    setCouponApplied(code);
-    setCouponCode(code);
-    setCouponError('');
+    
+    try {
+      const res = await apiFetch("/api/coupons/validate", {
+        method: "POST",
+        body: JSON.stringify({ code, orderValue: subtotal })
+      });
+      
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setAppliedCouponData(data.coupon);
+        setCouponApplied(code);
+        setCouponCode(code);
+        setCouponError('');
+      } else {
+        setCouponError(data.message || 'Invalid coupon code');
+        setCouponApplied('');
+        setAppliedCouponData(null);
+      }
+    } catch (err) {
+      setCouponError('Error validating coupon');
+    }
   };
 
   const handleRemoveCoupon = () => {
@@ -162,6 +202,7 @@ const OrderSummary = ({ cartItems, couponCode, setCouponCode, couponApplied, set
     setCouponCode('');
     setInputCode('');
     setCouponError('');
+    setAppliedCouponData(null);
   };
 
   return (
@@ -296,11 +337,35 @@ const OrderSummary = ({ cartItems, couponCode, setCouponCode, couponApplied, set
 // ════════════════════════════════════════════════════════════
 const DeliveryStep = ({ data, setData, onNext, user }) => {
   const [errors, setErrors] = useState({});
+  const [savedAddresses, setSavedAddresses] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [isAddingNew, setIsAddingNew] = useState(false);
 
-  // Pre-fill from AuthContext but avoid placeholders
+  useEffect(() => {
+    const fetchAddr = async () => {
+      if (!user) return;
+      try {
+        setLoading(true);
+        const res = await apiFetch("/api/user/addresses");
+        if (res.ok) {
+          const d = await res.json();
+          setSavedAddresses(d.addresses || []);
+          // Auto-select first if none selected
+          if (!data.address_id && d.addresses?.length > 0) {
+            // But don't auto-advance on first load
+          }
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAddr();
+  }, [user]);
+
   useEffect(() => {
     const isPlaceholder = (n) => !n || ['user', 'customer', 'trendy drapes user', 'trendy user'].includes(n.toLowerCase().trim());
-
     setData(d => ({
       ...d,
       name:  d.name  || (!isPlaceholder(user?.name) ? user?.name : ''),
@@ -313,7 +378,24 @@ const DeliveryStep = ({ data, setData, onNext, user }) => {
     if (errors[k]) setErrors(e => ({ ...e, [k]: '' }));
   };
 
-  const handleNext = () => {
+  const handleSelectSaved = (addr) => {
+    setData({
+      ...data,
+      address_id: addr.address_id,
+      name: addr.full_name,
+      phone: addr.phone,
+      door: addr.address_line_1,
+      street: addr.address_line_2,
+      city: addr.city,
+      state: addr.state,
+      pincode: addr.pincode,
+      address_type: addr.address_type,
+    });
+    // Amazon style: immediate progress on click
+    setTimeout(onNext, 100);
+  };
+
+  const handleUseThisAddress = async () => {
     const fields = ['name', 'email', 'phone', 'door', 'street', 'city', 'state', 'pincode', 'address_type'];
     const newErr = {};
     fields.forEach(f => {
@@ -321,7 +403,39 @@ const DeliveryStep = ({ data, setData, onNext, user }) => {
       if (err) newErr[f] = err;
     });
     if (Object.keys(newErr).length) { setErrors(newErr); return; }
-    onNext();
+
+    setLoading(true);
+    try {
+      // Save to profile as requested
+      const response = await apiFetch("/api/user/addresses", {
+        method: "POST",
+        body: JSON.stringify({
+          full_name: data.name,
+          phone: data.phone,
+          address_line_1: data.door,
+          address_line_2: data.street,
+          city: data.city,
+          state: data.state,
+          pincode: data.pincode,
+          address_type: data.address_type,
+          is_default: savedAddresses.length === 0
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.addressId) {
+          setData(d => ({ ...d, address_id: result.addressId }));
+        }
+      }
+      onNext();
+    } catch (err) {
+      console.error("Failed to save address:", err);
+      // Proceed anyway to not block checkout
+      onNext();
+    } finally {
+      setLoading(false);
+    }
   };
 
   const inp = (k, props = {}) => (
@@ -333,86 +447,149 @@ const DeliveryStep = ({ data, setData, onNext, user }) => {
     />
   );
 
+  if (loading && savedAddresses.length === 0) return <div className="py-20 text-center text-[#bba98a]">Preparing delivery options...</div>;
+
   return (
-    <div className="flex flex-col gap-6">
-      <Section title="Contact Information">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-          <Field label="Full Name *" error={errors.name}>
-            {inp('name', { placeholder: 'Ex: Ramesh Kumar' })}
-          </Field>
-          <Field label="Email Address *" error={errors.email}>
-            {inp('email', { type: 'email', placeholder: 'Ex: you@email.com' })}
-          </Field>
-        </div>
-        <Field label="Mobile Number *" error={errors.phone}>
-          {inp('phone', { type: 'tel', placeholder: '9876543210', maxLength: 10 })}
-        </Field>
-      </Section>
-
-      <Section title="Delivery Address">
-        <Field label="Door / Flat Number *" error={errors.door}>
-          {inp('door', { placeholder: 'Ex: No. 12, 3rd Floor' })}
-        </Field>
-        <Field label="Street / Area / Landmark *" error={errors.street}>
-          {inp('street', { placeholder: 'Ex: Anna Nagar, Near Park' })}
-        </Field>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-          <Field label="City *" error={errors.city}>
-            {inp('city', { placeholder: 'Ex: Chennai' })}
-          </Field>
-          <Field label="Pincode *" error={errors.pincode}>
-            {inp('pincode', { placeholder: 'Ex: 600001', maxLength: 6 })}
-          </Field>
-        </div>
-        <Field label="State *" error={errors.state}>
-          <div className="relative group">
-            <select
-              className={`w-full appearance-none bg-[#fdf8f2] border-[1.5px] border-[#e0cdb0] rounded-[14px] px-4 py-3.5 font-body text-[0.92rem] text-[#2d1f0e] outline-none transition-all focus:border-[#c47c1a] focus:ring-4 focus:ring-[#c47c1a]/10 focus:bg-white cursor-pointer ${errors.state ? 'border-red-400 bg-red-50/50' : ''}`}
-              value={data.state || ''}
-              onChange={e => set('state', e.target.value)}
-            >
-              <option value="">Select State</option>
-              {STATES.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-[#bba98a] pointer-events-none group-hover:text-[#c47c1a] transition-colors" size={18} />
-          </div>
-        </Field>
-
-        <Field label="Address Type *">
-          <div className="flex gap-3 mt-1">
-            {['Home', 'Work'].map(type => (
-              <button
-                key={type}
-                type="button"
-                className={`flex-1 py-3 rounded-xl font-body text-[0.85rem] font-bold tracking-wider transition-all border-[1.5px] ${
-                  (data.address_type || 'Home') === type 
-                    ? 'bg-[#1e1000] border-[#1e1000] text-[#f0c060] shadow-md shadow-[#1e1000]/20' 
-                    : 'bg-[#fdf8f2] border-[#e0cdb0] text-[#7a4f1e] hover:border-[#c47c1a] opacity-80'
+    <div className="animate-fade-in">
+      {!isAddingNew && savedAddresses.length > 0 ? (
+        <div className="flex flex-col gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {savedAddresses.map(addr => (
+              <div 
+                key={addr.address_id}
+                onClick={() => handleSelectSaved(addr)}
+                className={`p-6 rounded-2xl border-2 cursor-pointer transition-all duration-300 relative group ${
+                  data.address_id === addr.address_id 
+                    ? 'border-[#c47c1a] bg-[#fff8ec] shadow-md scale-[1.02]' 
+                    : 'border-[#ecdec8] bg-white hover:border-[#c47c1a]/50 hover:bg-[#faf6f0]'
                 }`}
-                onClick={() => set('address_type', type)}
               >
-                {type.toUpperCase()}
-              </button>
+                {data.address_id === addr.address_id && (
+                  <div className="absolute top-3 right-3 text-[#c47c1a]">
+                    <CheckCircle2 size={20} />
+                  </div>
+                )}
+                <div className="flex justify-between items-start mb-3">
+                  <span className="font-bold text-[#1e1000] tracking-tight">{addr.full_name}</span>
+                  <span className="text-[0.6rem] px-2 py-0.5 bg-[#f3e6d3] text-[#7a4f1e] rounded font-black uppercase tracking-tighter">{addr.address_type}</span>
+                </div>
+                <p className="text-[0.8rem] text-[#5a3a1a] leading-relaxed mb-1">{addr.address_line_1}, {addr.address_line_2}</p>
+                <p className="text-[0.8rem] text-[#5a3a1a]">{addr.city}, {addr.state} - {addr.pincode}</p>
+                <p className="text-[0.8rem] text-[#c47c1a] font-bold mt-3 opacity-80 group-hover:opacity-100 transition-opacity">📱 {addr.phone}</p>
+                
+                <button className={`mt-4 w-full py-2.5 rounded-xl font-display text-[0.7rem] font-bold tracking-[0.1em] uppercase transition-all ${
+                  data.address_id === addr.address_id 
+                  ? 'bg-[#c47c1a] text-white' 
+                  : 'bg-[#fdf9f4] text-[#7a4f1e] group-hover:bg-[#f3e6d3]'
+                }`}>
+                  {data.address_id === addr.address_id ? 'Ship to this address' : 'Deliver Here'}
+                </button>
+              </div>
             ))}
           </div>
-        </Field>
-      </Section>
+          <button 
+            type="button"
+            onClick={() => { setIsAddingNew(true); setData({ ...data, address_id: null }); }}
+            className="flex items-center justify-center gap-2 w-full py-4 border-2 border-dashed border-[#ecdec8] rounded-2xl text-[0.8rem] font-bold text-[#bba98a] hover:border-[#c47c1a] hover:text-[#c47c1a] hover:bg-[#fdf9f4] transition-all group"
+          >
+            <span className="text-xl group-hover:scale-125 transition-transform">+</span> Add a New Delivery Address
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-5">
+          <div className="flex justify-between items-center mb-1">
+            <h4 className="font-display text-[0.8rem] font-black text-[#c47c1a] tracking-[0.2em] uppercase">Add New Address</h4>
+            {savedAddresses.length > 0 && (
+              <button 
+                onClick={() => setIsAddingNew(false)}
+                className="text-[0.7rem] font-bold text-[#bba98a] hover:text-[#7a4f1e] underline"
+              >
+                Back to saved addresses
+              </button>
+            )}
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <Field label="Full Name *" error={errors.name}>
+              {inp('name', { placeholder: 'Ex: Ramesh Kumar' })}
+            </Field>
+            <Field label="Email Address *" error={errors.email}>
+              {inp('email', { type: 'email', placeholder: 'Ex: you@email.com' })}
+            </Field>
+          </div>
+          
+          <Field label="Mobile Number *" error={errors.phone}>
+            {inp('phone', { type: 'tel', placeholder: '9876543210', maxLength: 10 })}
+          </Field>
 
-      <button
-  className="w-full py-4 bg-gradient-to-r from-[#1e1000] via-[#c47c1a] to-[#7a4f1e]
-  border-none rounded-[18px]
-  text-[#f0c060] font-display text-[1rem] font-semibold tracking-[0.2em]
-  uppercase cursor-pointer
-  shadow-[0_18px_45px_rgba(30,15,0,0.25)]
-  ring-1 ring-[#c47c1a]/25
-  transition-all duration-300
-  hover:shadow-[0_25px_60px_rgba(30,15,0,0.35)]
-  hover:scale-[1.01] hover:-translate-y-0.5
-  active:scale-[0.98] mt-6"
-  onClick={handleNext}
->
-  Continue to Payment
-</button>
+          <div className="h-px bg-[#f3e6d3] my-2" />
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <Field label="Door / Flat Number *" error={errors.door}>
+              {inp('door', { placeholder: 'Ex: No. 12, 3rd Floor' })}
+            </Field>
+            <Field label="Street / Area / Landmark *" error={errors.street}>
+              {inp('street', { placeholder: 'Ex: Anna Nagar, Near Park' })}
+            </Field>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <div className="sm:col-span-1">
+              <Field label="City *" error={errors.city}>
+                {inp('city', { placeholder: 'Ex: Chennai' })}
+              </Field>
+            </div>
+            <div className="sm:col-span-1">
+              <Field label="Pincode *" error={errors.pincode}>
+                {inp('pincode', { placeholder: 'Ex: 600001', maxLength: 6 })}
+              </Field>
+            </div>
+            <div className="sm:col-span-1">
+              <Field label="State *" error={errors.state}>
+                <div className="relative group">
+                  <select
+                    className={`w-full appearance-none bg-[#fdf8f2] border-[1.5px] border-[#e0cdb0] rounded-[14px] px-4 py-3.5 font-body text-[0.92rem] text-[#2d1f0e] outline-none transition-all focus:border-[#c47c1a] focus:ring-4 focus:ring-[#c47c1a]/10 focus:bg-white cursor-pointer ${errors.state ? 'border-red-400 bg-red-50/50' : ''}`}
+                    value={data.state || ''}
+                    onChange={e => set('state', e.target.value)}
+                  >
+                    <option value="">Select State</option>
+                    {STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                  <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-[#bba98a] pointer-events-none group-hover:text-[#c47c1a] transition-colors" size={18} />
+                </div>
+              </Field>
+            </div>
+          </div>
+
+          <Field label="Address Type *">
+            <div className="flex gap-4">
+              {['Home', 'Work'].map(type => (
+                <button
+                  key={type}
+                  type="button"
+                  className={`flex-1 py-4 rounded-xl font-display text-[0.75rem] font-bold tracking-widest transition-all border-[1.5px] ${
+                    (data.address_type || 'Home') === type 
+                      ? 'bg-[#1e1000] border-[#1e1000] text-[#f0c060] shadow-lg shadow-[#1e1000]/20' 
+                      : 'bg-[#fdf8f2] border-[#e0cdb0] text-[#7a4f1e] hover:border-[#c47c1a]'
+                  }`}
+                  onClick={() => set('address_type', type)}
+                >
+                  {type.toUpperCase()}
+                </button>
+              ))}
+            </div>
+          </Field>
+
+          <button
+            className="w-full py-4 bg-gradient-to-r from-[#1e1000] via-[#c47c1a] to-[#7a4f1e] border-none rounded-[20px] text-[#f0c060] font-display text-[0.95rem] font-black tracking-[0.15em] uppercase cursor-pointer shadow-xl transition-all duration-300 hover:scale-[1.01] hover:shadow-2xl active:scale-[0.98] disabled:opacity-50"
+            onClick={handleUseThisAddress}
+            disabled={loading}
+          >
+            {loading ? 'Saving...' : 'Use this address & Proceed'}
+            <Lock size={18} className="translate-y-[-2px] ml-3 inline-block opacity-60" />
+          </button>
+        </div>
+      )}
     </div>
   );
 };
@@ -455,7 +632,15 @@ const PaymentStep = ({ onNext, onBack }) => {
       if (!net) newErr.net = 'Please select a bank';
     }
     if (Object.keys(newErr).length) { setErrors(newErr); return; }
-    onNext();
+
+    let summary = '';
+    if (method === 'card') summary = `Card ending in ${card.number.slice(-4)}`;
+    else if (method === 'upi') summary = `UPI: ${upi}`;
+    else if (method === 'netbanking') summary = `Net Banking: ${net}`;
+    else if (method === 'cod') summary = 'Cash on Delivery';
+    else summary = method.toUpperCase();
+
+    onNext(summary);
   };
 
   const banks = ['State Bank of India', 'HDFC Bank', 'ICICI Bank', 'Axis Bank', 'Kotak Mahindra Bank', 'Bank of Baroda', 'Punjab National Bank', 'Canara Bank'];
@@ -559,8 +744,8 @@ const PaymentStep = ({ onNext, onBack }) => {
       )}
 
       <div className="flex gap-5 items-center mt-8">
-        <button className="px-8 py-5 bg-white border-[1.5px] border-[#e0cdb0] rounded-[20px] text-[#7a4f1e] font-display text-[0.9rem] font-black tracking-widest cursor-pointer transition-all duration-300 hover:bg-[#fdf9f4] hover:border-[#c47c1a] active:scale-95" onClick={onBack}>BACK</button>
-        <button className="flex-1 py-6 bg-gradient-to-r from-[#1e1000] via-[#c47c1a] to-[#7a4f1e] border-none rounded-[20px] text-[#f0c060] font-display text-[1.12rem] font-black tracking-[0.3em] uppercase cursor-pointer shadow-[0_25px_60px_rgba(30,15,0,0.35)] ring-1 ring-[#c47c1a]/30 transition-all duration-500 hover:shadow-[0_35px_80px_rgba(30,15,0,0.45)] hover:scale-[1.02] hover:-translate-y-1 active:scale-[0.98]" onClick={handleNext}>
+        <button className="px-8 py-4 bg-white border-[1.5px] border-[#e0cdb0] rounded-[20px] text-[#7a4f1e] font-display text-[0.85rem] font-black tracking-widest cursor-pointer transition-all duration-300 hover:bg-[#fdf9f4] hover:border-[#c47c1a] active:scale-95" onClick={onBack}>BACK</button>
+        <button className="flex-1 py-4 bg-gradient-to-r from-[#1e1000] via-[#c47c1a] to-[#7a4f1e] border-none rounded-[16px] text-[#f0c060] font-display text-[0.85rem] font-bold tracking-[0.1em] uppercase cursor-pointer shadow-[0_15px_40px_rgba(30,15,0,0.2)] ring-1 ring-[#c47c1a]/30 transition-all duration-500 hover:shadow-[0_20px_50px_rgba(30,15,0,0.3)] hover:scale-[1.01] hover:-translate-y-0.5 active:scale-[0.98]" onClick={handleNext}>
           Review Order
         </button>
       </div>
@@ -571,16 +756,19 @@ const PaymentStep = ({ onNext, onBack }) => {
 // ════════════════════════════════════════════════════════════
 //  STEP 3 — CONFIRM
 // ════════════════════════════════════════════════════════════
-const ConfirmStep = ({ delivery, cartItems, couponApplied, onBack, onPlace }) => {
+const ConfirmStep = ({ delivery, cartItems, couponApplied, appliedCouponData, onBack, onPlace }) => {
   const subtotal   = cartItems.reduce((s, i) => s + i.product.price * i.quantity, 0);
   const savings    = cartItems.reduce((s, i) => s + ((i.product.originalPrice ?? i.product.price) - i.product.price) * i.quantity, 0);
   const deliveryFee = 49;
   const platformFee = 19;
   const gst        = subtotal * GST_RATE;
   let couponDisc   = 0;
-  if (couponApplied && COUPONS[couponApplied]) {
-    const c = COUPONS[couponApplied];
-    couponDisc = c.type === 'percent' ? subtotal * c.value / 100 : c.value;
+  if (couponApplied && appliedCouponData) {
+    const c = appliedCouponData;
+    couponDisc = (subtotal * c.discount_percent) / 100;
+    if (c.max_discount && couponDisc > c.max_discount) {
+      couponDisc = c.max_discount;
+    }
   }
   const total = subtotal + deliveryFee + platformFee + gst - couponDisc;
 
@@ -625,9 +813,9 @@ const ConfirmStep = ({ delivery, cartItems, couponApplied, onBack, onPlace }) =>
       </Section>
 
       <div className="flex gap-5 items-center mt-8">
-        <button className="px-8 py-5 bg-white border-[1.5px] border-[#e0cdb0] rounded-[20px] text-[#7a4f1e] font-display text-[0.9rem] font-black tracking-widest cursor-pointer transition-all duration-300 hover:bg-[#fdf9f4] hover:border-[#c47c1a] active:scale-95" onClick={onBack}>BACK</button>
-        <button className="flex-1 py-6 bg-gradient-to-r from-[#1e5c1e] via-[#2d7a2d] to-[#1e5c1e] border-none rounded-[20px] text-white font-display text-[1.12rem] font-black tracking-[0.2em] uppercase cursor-pointer shadow-[0_25px_60px_rgba(30,80,30,0.2)] transition-all duration-500 hover:shadow-[0_35px_80px_rgba(30,80,30,0.3)] hover:scale-[1.02] hover:-translate-y-1 active:scale-[0.98]" onClick={onPlace}>
-          <Lock size={20} className="translate-y-[-2px] mr-2 inline-block" /> PAY & PLACE ORDER · ₹{fmt(total)}
+        <button className="px-8 py-4 bg-white border-[1.5px] border-[#e0cdb0] rounded-[20px] text-[#7a4f1e] font-display text-[0.85rem] font-black tracking-widest cursor-pointer transition-all duration-300 hover:bg-[#fdf9f4] hover:border-[#c47c1a] active:scale-95" onClick={onBack}>BACK</button>
+        <button className="flex-1 py-4 bg-gradient-to-r from-[#1e5c1e] via-[#2d7a2d] to-[#1e5c1e] border-none rounded-[20px] text-white font-display text-[1rem] font-black tracking-[0.15em] uppercase cursor-pointer shadow-[0_20px_50px_rgba(30,80,30,0.15)] transition-all duration-500 hover:shadow-[0_30px_70px_rgba(30,80,30,0.25)] hover:scale-[1.02] hover:-translate-y-1 active:scale-[0.98]" onClick={onPlace}>
+          <Lock size={18} className="translate-y-[-2px] mr-2 inline-block" /> PAY & PLACE ORDER · ₹{fmt(total)}
         </button>
       </div>
     </div>
@@ -640,7 +828,7 @@ const ConfirmStep = ({ delivery, cartItems, couponApplied, onBack, onPlace }) =>
 const OrderSuccess = ({ orderId, name }) => {
   const navigate = useNavigate();
   return (
-    <div className="max-w-[540px] mx-auto my-20 text-center animate-fade-in">
+    <div className="max-w-[540px] mx-auto mt-8 mb-20 text-center animate-fade-in">
       <div className="bg-white rounded-[32px] p-10 sm:p-14 shadow-[0_20px_60px_rgba(180,120,0,0.12)] border border-[#ecdec8] ring-1 ring-[#ecdec8]/50 relative overflow-hidden">
         {/* Subtle background element */}
         <div className="absolute -top-24 -right-24 w-64 h-64 bg-[#fdf9f4] rounded-full blur-3xl opacity-50" />
@@ -667,7 +855,7 @@ const OrderSuccess = ({ orderId, name }) => {
             <ShieldCheck size={16} /> A confirmation email has been sent to your inbox.
           </p>
           
-          <button className="w-full py-5.5 bg-gradient-to-r from-[#1e1000] via-[#c47c1a] to-[#7a4f1e] border-none rounded-[16px] text-[#f0c060] font-display text-[1.1rem] font-black tracking-[0.25em] uppercase cursor-pointer transition-all duration-500 hover:shadow-xl hover:-translate-y-1 active:scale-[0.98]" onClick={() => navigate('/')}>
+          <button className="w-full py-4 bg-gradient-to-r from-[#1e1000] via-[#c47c1a] to-[#7a4f1e] border-none rounded-[16px] text-[#f0c060] font-display text-[1rem] font-black tracking-[0.2em] uppercase cursor-pointer transition-all duration-500 hover:shadow-xl hover:-translate-y-1 active:scale-[0.98]" onClick={() => navigate('/')}>
             CONTINUE SHOPPING
           </button>
         </div>
@@ -688,19 +876,21 @@ const Checkout = () => {
 
   const [step,          setStep]          = useState(1);
   const [delivery,      setDelivery]      = useState({ address_type: 'Home' });
+  const [paymentInfo,   setPaymentInfo]   = useState('');
   const [couponCode,    setCouponCode]    = useState('');
   const [couponApplied, setCouponApplied] = useState('');
+  const [appliedCouponData, setAppliedCouponData] = useState(null);
   const [couponError,   setCouponError]   = useState('');
   const [orderId,       setOrderId]       = useState('');
   const [placed,        setPlaced]        = useState(false);
 
   useEffect(() => {
     if (items.length === 0 && !placed) navigate('/cart');
-  }, [items, placed]);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [items, placed, step]);
 
-  const handlePlace = async () => {
+  const handlePlace = async (paymentMethodSummary) => {
     const id = 'ORD-' + Date.now().toString().slice(-8);
-
     const subtotal = items.reduce((s, i) => s + i.product.price * i.quantity, 0);
     const deliveryFee = 49;
     const platformFee = 19;
@@ -714,17 +904,18 @@ const Checkout = () => {
 
     const orderData = {
       orderId: id,
+      address_id: delivery.address_id || null,
       customerEmail: delivery.email,
       customerName: delivery.name,
       customerPhone: delivery.phone,
-      shippingAddress: delivery,
+      shippingAddress: delivery.address_id ? null : delivery,
       subtotal: Number(subtotal),
       tax_amount: Number(gst),
       shipping_charge: Number(deliveryFee),
       discount_amount: Number(couponDisc),
       total_amount: Number(total),
       items: items.map(item => ({
-        product_id: item.product.id,
+        product_id: item.product.id || item.product_id,
         quantity: item.quantity,
         price: Number(item.product.price),
         size: item.size
@@ -760,50 +951,71 @@ const Checkout = () => {
     );
   }
 
+  const addrSummary = delivery.name ? `${delivery.name}, ${delivery.city} ${delivery.pincode}` : '';
+
   return (
     <div className="min-h-screen bg-[#faf6f0] font-body text-[#2d1f0e] pb-16 transition-colors duration-1000">
       {/* Premium Header */}
       <div className="flex items-center justify-between bg-[#1e1000] px-6 sm:px-12 py-4 font-display text-[#f0c060] text-[1rem] tracking-[0.2em] shadow-xl sticky top-0 z-50 border-b border-[#c47c1a]/20">
-        <div className="flex-1 font-black group cursor-default">
+        <Link to="/" className="flex-1 font-black group cursor-pointer hover:text-white transition-colors">
           TRENDY DRAPES <span className="hidden sm:inline opacity-50 font-medium ml-2">— SECURE CHECKOUT</span>
-        </div>
+        </Link>
         <div className="flex items-center gap-2 font-body text-[0.7rem] font-bold text-[#f0c060] tracking-widest bg-white/5 px-4 py-2 rounded-full border border-white/10 uppercase">
-          <ShieldCheck size={16} className="text-[#4caf50]" /> Verified SSL
+          <ShieldCheck size={16} className="text-[#4caf50]" /> Secured
         </div>
       </div>
 
-      <StepBar step={step} />
-
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-10 max-w-[1260px] mx-auto mt-10 px-6 sm:px-8">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-8 max-w-[1260px] mx-auto mt-10 px-4 sm:px-8">
         {/* LEFT — form steps */}
-        <div className="order-2 lg:order-1 animate-fade-in">
-          {step === 1 && (
+        <div className="order-2 lg:order-1 flex flex-col gap-2">
+          
+          <StepSection 
+            step={1} 
+            currentStep={step} 
+            title="1. Delivery Address" 
+            summary={addrSummary}
+            onEdit={() => setStep(1)}
+          >
             <DeliveryStep
               data={delivery}
               setData={setDelivery}
-              onNext={() => { setStep(2); window.scrollTo({top:0, behavior:'smooth'}); }}
+              onNext={() => setStep(2)}
               user={user}
             />
-          )}
-          {step === 2 && (
+          </StepSection>
+
+          <StepSection 
+            step={2} 
+            currentStep={step} 
+            title="2. Payment Method" 
+            summary={step > 2 ? paymentInfo : ""}
+            onEdit={() => setStep(2)}
+          >
             <PaymentStep
-              onNext={() => { setStep(3); window.scrollTo({top:0, behavior:'smooth'}); }}
-              onBack={() => { setStep(1); window.scrollTo({top:0, behavior:'smooth'}); }}
+              onNext={(info) => { setPaymentInfo(info); setStep(3); }}
+              onBack={() => setStep(1)}
             />
-          )}
-          {step === 3 && (
+          </StepSection>
+
+          <StepSection 
+            step={3} 
+            currentStep={step} 
+            title="3. Review Items & Place Order"
+            onEdit={() => setStep(3)}
+          >
             <ConfirmStep
               delivery={delivery}
               cartItems={items}
               couponApplied={couponApplied}
-              onBack={() => { setStep(2); window.scrollTo({top:0, behavior:'smooth'}); }}
+              onBack={() => setStep(2)}
               onPlace={handlePlace}
             />
-          )}
+          </StepSection>
+
         </div>
 
         {/* RIGHT — order summary */}
-        <div className="order-1 lg:order-2 animate-fade-in [animation-delay:200ms]">
+        <div className="order-1 lg:order-2">
           <OrderSummary
             cartItems={items}
             couponCode={couponCode}
@@ -813,16 +1025,13 @@ const Checkout = () => {
             couponError={couponError}
             setCouponError={setCouponError}
           />
+          
+          <div className="mt-8 px-4 text-center">
+            <p className="text-[0.7rem] font-bold text-[#bba98a] tracking-widest uppercase flex items-center justify-center gap-2">
+              <ShieldCheck size={14} /> 100% Secure Transaction
+            </p>
+          </div>
         </div>
-      </div>
-      
-      {/* Footer Branding */}
-      <div className="max-w-[1260px] mx-auto px-8 mt-16 text-center">
-        <p className="text-[0.75rem] font-bold text-[#bba98a] tracking-widest uppercase flex items-center justify-center gap-3">
-          <span className="w-12 h-px bg-[#ecdec8]" />
-          Secured by Razorpay & Stripe
-          <span className="w-12 h-px bg-[#ecdec8]" />
-        </p>
       </div>
     </div>
   );

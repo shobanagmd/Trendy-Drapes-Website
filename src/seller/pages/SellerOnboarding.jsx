@@ -91,14 +91,15 @@ const INIT_STATE = {
     otp: "", mobileVerified: false, otpSent: false, otpTimer: 0, devOtp: "",
   },
   business: {
-    businessType: "", businessName: "", address: "",
+    businessType: "", businessName: "", legalName: "", address: "",
     city: "", state: "", pincode: "", country: "India",
   },
   tax: { panNumber: "", gstin: "" },
-  bank: { accountHolderName: "", bankName: "", accountNumber: "", ifscCode: "" },
+  bank: { accountHolderName: "", bankName: "", accountNumber: "", ifscCode: "", branchName: "", accountType: "Savings" },
   store: {
     storeName: "", storeDescription: "",
-    pickupAddress: "", returnAddress: "",
+    pickupAddress: "", pickupCity: "", pickupState: "", pickupPincode: "",
+    returnAddress: "",
     instagramUrl: "", facebookUrl: "", twitterUrl: "",
     logoFile: null, logoPreview: "",
     bannerFile: null, bannerPreview: "",
@@ -1237,6 +1238,11 @@ function StepBusiness({ data, setData, errors }) {
         <Field label="Business Name" required error={errors.businessName}>
           <Input value={data.businessName} onChange={set("businessName")} placeholder="Your registered business name" error={errors.businessName} />
         </Field>
+        <Field label="Legal Name" error={errors.legalName} hint="As per your PAN/GST registration">
+          <Input value={data.legalName} onChange={set("legalName")} placeholder="Official legal name" error={errors.legalName} />
+        </Field>
+      </div>
+      <div className="ob-row ob-row-1">
         <Field label="Country" required error={errors.country}>
           <Select value={data.country} onChange={set("country")} error={errors.country}>
             <option value="India">India</option>
@@ -1273,6 +1279,7 @@ function validateBusiness(d) {
   const e = {};
   if (!d.businessType) e.businessType = "Please select a business type";
   if (!d.businessName.trim()) e.businessName = "Business name is required";
+  if (d.businessType !== "individual" && !d.legalName.trim()) e.legalName = "Legal name is required";
   if (!d.address.trim()) e.address = "Address is required";
   if (!d.city.trim()) e.city = "City is required";
   if (!d.state) e.state = "State is required";
@@ -1355,6 +1362,18 @@ function StepBank({ data, setData, errors }) {
         </Field>
       </div>
 
+      <div className="ob-row ob-row-2">
+        <Field label="Branch Name" error={errors.branchName}>
+          <Input value={data.branchName} onChange={set("branchName")} placeholder="e.g. Varanasi Main Branch" error={errors.branchName} />
+        </Field>
+        <Field label="Account Type" required error={errors.accountType}>
+          <Select value={data.accountType} onChange={set("accountType")} error={errors.accountType}>
+            <option value="Savings">Savings</option>
+            <option value="Current">Current</option>
+          </Select>
+        </Field>
+      </div>
+
       <div className="ob-hint" style={{ marginTop: "1rem", padding: "0.85rem 1rem", background: T.goldBg, borderRadius: 6, border: `1px solid ${T.goldBorder}`, fontSize: "0.75rem", color: T.textMid, lineHeight: 1.6 }}>
         <strong>💳 Payout Schedule:</strong> Trendy Drapes processes seller payouts every 7 days after order delivery confirmation. Minimum payout threshold is ₹500.
       </div>
@@ -1419,10 +1438,27 @@ function StepStore({ data, setData, errors }) {
 
       <div className="ob-section-title">Addresses</div>
 
-      <div className="ob-row ob-row-2">
+      <div className="ob-row ob-row-1">
         <Field label="Pickup Address" required error={errors.pickupAddress} hint="Address from where orders will be picked up">
           <Textarea value={data.pickupAddress} onChange={set("pickupAddress")} placeholder="Full pickup address" error={errors.pickupAddress} style={{ minHeight: 72 }} />
         </Field>
+      </div>
+      <div className="ob-row ob-row-3">
+        <Field label="City" required error={errors.pickupCity}>
+          <Input value={data.pickupCity} onChange={set("pickupCity")} placeholder="City" error={errors.pickupCity} />
+        </Field>
+        <Field label="State" required error={errors.pickupState}>
+          <Select value={data.pickupState} onChange={set("pickupState")} error={errors.pickupState}>
+            <option value="">Select State</option>
+            {STATES.map(s => <option key={s} value={s}>{s}</option>)}
+          </Select>
+        </Field>
+        <Field label="Pincode" required error={errors.pickupPincode}>
+          <Input value={data.pickupPincode} onChange={set("pickupPincode")} placeholder="6-digit PIN" maxLength={6} error={errors.pickupPincode} />
+        </Field>
+      </div>
+
+      <div className="ob-row ob-row-1">
         <Field label="Return Address" required error={errors.returnAddress} hint="Address where returned items should be sent">
           <Textarea value={data.returnAddress} onChange={set("returnAddress")} placeholder="Full return address" error={errors.returnAddress} style={{ minHeight: 72 }} />
         </Field>
@@ -1450,6 +1486,9 @@ function validateStore(d) {
   if (!d.storeName.trim()) e.storeName = "Store name is required";
   if (!d.storeDescription.trim()) e.storeDescription = "Store description is required";
   if (!d.pickupAddress.trim()) e.pickupAddress = "Pickup address is required";
+  if (!d.pickupCity?.trim()) e.pickupCity = "City is required";
+  if (!d.pickupState) e.pickupState = "State is required";
+  if (!/^\d{6}$/.test(d.pickupPincode?.trim())) e.pickupPincode = "Enter valid 6-digit PIN";
   if (!d.returnAddress.trim()) e.returnAddress = "Return address is required";
   [["instagramUrl","instagramUrl"],["facebookUrl","facebookUrl"],["twitterUrl","twitterUrl"]].forEach(([k,ek]) => {
     if (d[k]) { const err = V.url(d[k]); if (err) e[ek] = "Enter a valid URL"; }
@@ -1775,21 +1814,29 @@ export default function SellerOnboarding() {
       fd.append("state", bizData.state);
       fd.append("pincode", bizData.pincode);
       fd.append("country", bizData.country);
+      fd.append("legalName", bizData.legalName);
 
       // Tax Info
       fd.append("panNumber", taxData.panNumber);
       fd.append("gstin", taxData.gstin);
 
       // Bank Details
-      fd.append("accountHolderName", bankData.accountHolderName);
-      fd.append("bankName", bankData.bankName);
-      fd.append("accountNumber", bankData.accountNumber);
-      fd.append("ifscCode", bankData.ifscCode);
+      fd.append("bankDetails", JSON.stringify({
+        accountHolderName: bankData.accountHolderName,
+        bankName: bankData.bankName,
+        accountNumber: bankData.accountNumber,
+        ifscCode: bankData.ifscCode,
+        branchName: bankData.branchName,
+        accountType: bankData.accountType
+      }));
 
       // Store Setup
       fd.append("storeName", storeData.storeName);
       fd.append("storeDescription", storeData.storeDescription);
       fd.append("pickupAddress", storeData.pickupAddress);
+      fd.append("pickupCity", storeData.pickupCity);
+      fd.append("pickupState", storeData.pickupState);
+      fd.append("pickupPincode", storeData.pickupPincode);
       fd.append("returnAddress", storeData.returnAddress);
       fd.append("instagramUrl", storeData.instagramUrl);
       fd.append("facebookUrl", storeData.facebookUrl);

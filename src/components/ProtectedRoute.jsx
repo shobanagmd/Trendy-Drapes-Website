@@ -9,7 +9,7 @@ export const ProtectedRoute = ({ children }) => {
 
 export const AdminRoute = ({ children }) => {
   const { user, role } = useAuth();
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/admin-login" replace />;
   if (role !== "admin") return <Navigate to="/" replace />;
   return children;
 };

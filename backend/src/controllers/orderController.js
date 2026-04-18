@@ -1,5 +1,6 @@
 const db = require('../config/db');
 const financeController = require('./financeController');
+const notificationController = require('./notificationController');
 
 exports.createOrder = async (req, res) => {
   const customer_id = req.user.id;
@@ -105,14 +106,51 @@ exports.createOrder = async (req, res) => {
       [order_id, 'Pending', 'System', 'Order placed successfully']
     );
 
-    // 4. Record financial transaction (Sale)
     await financeController.recordTransaction({
         order_id: order_id,
         transaction_type: 'Sale',
         amount: total_amount || total || finalAmount
     });
 
+    // 5. Track Coupon Usage
+    if (final_coupon_id && final_coupon_id.length === 36) {
+      console.log("Tracking coupon usage for:", final_coupon_id);
+      // Update usage count
+      await db.query('UPDATE coupons SET used_count = used_count + 1 WHERE coupon_id = $1', [final_coupon_id]);
+      
+      // Record in coupon_usage
+      await db.query(
+        'INSERT INTO coupon_usage (coupon_id, customer_id, order_id) VALUES ($1, $2, $3)',
+        [final_coupon_id, customer_id, order_id]
+      );
+      
+      // Record in order_coupons
+      await db.query(
+        'INSERT INTO order_coupons (order_id, coupon_id, discount_amount) VALUES ($1, $2, $3)',
+        [order_id, final_coupon_id, discount_amount || discountAmount || 0]
+      );
+    }
+
     await db.query('COMMIT');
+
+    // Trigger Notification for Customer
+    await notificationController.createNotification({
+      customer_id: customer_id,
+      order_id: order_id,
+      type: 'Order Placed',
+      message: `Your order #${order_id} has been placed successfully!`
+    });
+
+    // Notify sellers
+    const uniqueSellers = [...new Set(items.map(i => i.seller_id).filter(s => s))];
+    for (const sid of uniqueSellers) {
+      await notificationController.createNotification({
+        seller_id: sid,
+        order_id: order_id,
+        type: 'New Order',
+        message: `You have received a new order #${order_id}.`
+      });
+    }
 
     res.json({ success: true, order: orderRes.rows[0] });
 
@@ -176,5 +214,56 @@ exports.getCustomerOrders = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: "Error fetching orders" });
+  }
+};
+
+exports.updateOrderStatus = async (req, res) => {
+  const { id } = req.params;
+  const { status, notes } = req.body;
+  const changed_by = req.user.name || req.user.full_name || 'Admin';
+
+  try {
+    await db.query('BEGIN');
+
+    // 1. Update order status
+    const orderRes = await db.query(
+      `UPDATE orders SET order_status = $1, updated_at = CURRENT_TIMESTAMP WHERE order_id = $2 RETURNING customer_id`,
+      [status, id]
+    );
+
+    if (orderRes.rows.length === 0) {
+      await db.query('ROLLBACK');
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+
+    const customer_id = orderRes.rows[0].customer_id;
+
+    // 2. Add to history
+    await db.query(
+      `INSERT INTO order_status_history (order_id, status, changed_by, notes) 
+       VALUES ($1, $2, $3, $4)`,
+      [id, status, changed_by, notes || `Status updated to ${status}`]
+    );
+
+    await db.query('COMMIT');
+
+    // 3. Trigger Notification
+    let msg = `Your order #${id} status has been updated to ${status}.`;
+    if (status === 'Cancelled') msg = `Your order #${id} has been cancelled.`;
+    if (status === 'Shipped') msg = `Great news! Your order #${id} has been shipped.`;
+    if (status === 'Delivered') msg = `Your order #${id} has been delivered. We hope you love it!`;
+
+    await notificationController.createNotification({
+      customer_id: customer_id,
+      order_id: id,
+      type: 'Order Status Update',
+      message: msg
+    });
+
+    res.json({ success: true, message: `Order status updated to ${status}` });
+  } catch (err) {
+    await db.query('ROLLBACK');
+    console.error(err);
+    res.status(500).json({ success: false, message: "Error updating order status" });
   }
 };

@@ -12,6 +12,11 @@ const sellerRoutes = require('./routes/sellerRoutes');
 const wishlistRoutes = require('./routes/wishlistRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
 const financeRoutes = require('./routes/financeRoutes');
+const otpRoutes = require('./routes/otpRoutes');
+const categoryRoutes = require('./routes/categoryRoutes');
+const couponRoutes = require('./routes/couponRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
+
 
 const app = express();
 
@@ -30,7 +35,7 @@ app.use(cors({
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -42,6 +47,10 @@ app.use('/api/seller', sellerRoutes);
 app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/finance', financeRoutes);
+app.use('/api/otp', otpRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/coupons', couponRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Compatibility redirect (Optional: if we want to support old non-prefixed routes during transition)
 app.post('/api/login', (req, res) => res.redirect(307, '/api/auth/login'));

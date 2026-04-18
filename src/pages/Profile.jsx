@@ -35,7 +35,10 @@ import {
   XCircle,
   Truck,
   CheckCircle2,
-  Clock
+  Clock,
+  Trash2,
+  Plus as PlusIcon,
+  Pencil
 } from "lucide-react";
 
 const Profile = () => {
@@ -51,7 +54,7 @@ const Profile = () => {
   const [uploading, setUploading] = useState(false);
   
   const [profileData, setProfileData] = useState({
-    name: "",
+    full_name: "",
     email: "",
     phone: "",
     address: "",
@@ -59,9 +62,17 @@ const Profile = () => {
     state: "",
     pincode: "",
     country: "India",
-    profile_image: "",
+    profile_picture_url: "",
     date_of_birth: "",
     gender: ""
+  });
+  
+  const [addresses, setAddresses] = useState([]);
+  const [isEditingAddress, setIsEditingAddress] = useState(false);
+  const [selectedAddress, setSelectedAddress] = useState(null);
+  const [addressForm, setAddressForm] = useState({
+    full_name: "", phone: "", address_line_1: "", address_line_2: "", 
+    city: "", state: "", pincode: "", country: "India", address_type: "Home", is_default: false
   });
 
   const hasInitialized = useRef(false);
@@ -69,7 +80,7 @@ const Profile = () => {
   useEffect(() => {
     if (user && !hasInitialized.current) {
       setProfileData({
-        name: user.name || "",
+        full_name: user.full_name || user.name || "",
         email: user.email || "",
         phone: user.phone || "",
         address: user.address || "",
@@ -77,7 +88,7 @@ const Profile = () => {
         state: user.state || "",
         pincode: user.pincode || "",
         country: user.country || "India",
-        profile_image: user.profile_image || "",
+        profile_picture_url: user.profile_picture_url || user.profile_image || "",
         date_of_birth: user.date_of_birth || "",
         gender: user.gender || ""
       });
@@ -99,6 +110,21 @@ const Profile = () => {
     }
   };
 
+  const fetchAddresses = async () => {
+    try {
+      setLoading(true);
+      const res = await apiFetch("/api/user/addresses");
+      if (res.ok) {
+        const data = await res.json();
+        setAddresses(data.addresses || []);
+      }
+    } catch (err) {
+      console.error("Error fetching addresses:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const fetchOrders = async () => {
     try {
       setLoading(true);
@@ -106,12 +132,90 @@ const Profile = () => {
       if (res.ok) {
         const data = await res.json();
         setOrders(data.orders || []);
+      } else {
+        console.error("Failed to fetch orders:", res.status);
       }
     } catch (err) {
       console.error("Error fetching orders:", err);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSaveAddress = async (e) => {
+    e.preventDefault();
+    try {
+      setLoading(true);
+      const url = selectedAddress ? `/api/user/addresses/${selectedAddress.address_id}` : "/api/user/addresses";
+      const method = selectedAddress ? "PUT" : "POST";
+      
+      const res = await apiFetch(url, {
+        method,
+        body: JSON.stringify(addressForm)
+      });
+      
+      if (res.ok) {
+        toast.success(selectedAddress ? "Address updated" : "Address added");
+        setIsEditingAddress(false);
+        setSelectedAddress(null);
+        fetchAddresses();
+      } else {
+        toast.error("Failed to save address");
+      }
+    } catch (err) {
+      toast.error("An error occurred");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteAddress = async (addressId) => {
+    if (!window.confirm("Are you sure you want to delete this address?")) return;
+    try {
+      const res = await apiFetch(`/api/user/addresses/${addressId}`, { method: "DELETE" });
+      if (res.ok) {
+        toast.success("Address deleted");
+        fetchAddresses();
+      } else {
+        toast.error("Failed to delete address");
+      }
+    } catch (err) {
+      toast.error("An error occurred");
+    }
+  };
+
+  const handleEditAddress = (addr) => {
+    setSelectedAddress(addr);
+    setAddressForm({
+      full_name: addr.full_name,
+      phone: addr.phone,
+      address_line_1: addr.address_line_1,
+      address_line_2: addr.address_line_2,
+      city: addr.city,
+      state: addr.state,
+      pincode: addr.pincode,
+      country: addr.country,
+      address_type: addr.address_type,
+      is_default: addr.is_default
+    });
+    setIsEditingAddress(true);
+  };
+
+  const handleAddNewAddress = () => {
+    setSelectedAddress(null);
+    setAddressForm({
+      full_name: profileData.full_name || "",
+      phone: profileData.phone || "",
+      address_line_1: "",
+      address_line_2: "",
+      city: "",
+      state: "",
+      pincode: "",
+      country: "India",
+      address_type: "Home",
+      is_default: addresses.length === 0
+    });
+    setIsEditingAddress(true);
   };
 
   const handleUpdateProfile = async (e) => {
@@ -158,8 +262,8 @@ const Profile = () => {
       
       const data = await res.json();
       if (data.success) {
-        setProfileData(prev => ({ ...prev, profile_image: data.profileImage }));
-        setUser({ ...user, profile_image: data.profileImage });
+        setProfileData(prev => ({ ...prev, profile_picture_url: data.profileImage }));
+        setUser({ ...user, profile_picture_url: data.profileImage });
         toast.success("Profile photo updated");
       } else {
         toast.error(data.message || "Upload failed");
@@ -221,7 +325,7 @@ const Profile = () => {
     { id: "orders", icon: PackageLucide, label: "My Orders", desc: "Track, return or buy again", action: () => { setActiveView("orders"); fetchOrders(); } },
     { id: "cart", icon: CreditCardLucide, label: "My Cart", desc: "View and manage your shopping cart", link: "/cart" },
     { id: "wishlist", icon: HeartLucide, label: "Wishlist", desc: "Your saved items", link: "/wishlist" },
-    { id: "addresses", icon: MapPinLucide, label: "Addresses", desc: "Manage your delivery addresses", action: () => setActiveView("addresses") },
+    { id: "addresses", icon: MapPinLucide, label: "Addresses", desc: "Manage your delivery addresses", action: () => { setActiveView("addresses"); fetchAddresses(); } },
     { id: "profile", icon: UserLucide, label: "Profile Details", desc: "Edit your personal information", action: () => setActiveView("profile") },
   ];
 
@@ -480,8 +584,8 @@ const Profile = () => {
                   <label className="text-[10px] font-black uppercase tracking-[0.25em] text-muted-foreground ml-1">Full Name</label>
                   <input 
                     type="text" 
-                    value={profileData.name} 
-                    onChange={e => setProfileData({...profileData, name: e.target.value})}
+                    value={profileData.full_name} 
+                    onChange={e => setProfileData({...profileData, full_name: e.target.value})}
                     placeholder="Enter your full name"
                     className="w-full p-4 bg-background border border-border focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all rounded-xl font-medium"
                   />
@@ -544,61 +648,163 @@ const Profile = () => {
       case "addresses":
         return (
           <div className="space-y-6 animate-in fade-in duration-500">
-            <div className="flex items-center gap-2 mb-6 cursor-pointer hover:text-primary transition-colors font-bold uppercase tracking-widest text-[10px]" onClick={() => setActiveView("overview")}>
+            <div className="flex items-center gap-2 mb-6 cursor-pointer hover:text-primary transition-colors font-bold uppercase tracking-widest text-[10px]" onClick={() => { setActiveView("overview"); setIsEditingAddress(false); }}>
               <ChevronLeftLucide size={14} /> Back to My Account
             </div>
-            <h3 className="text-xl font-display font-bold">Delivery Addresses</h3>
-            <p className="text-sm text-muted-foreground mb-8">Manage your primary shipping address for a faster checkout experience.</p>
             
-            <form onSubmit={handleUpdateProfile} className="bg-card border border-border p-10 rounded-3xl space-y-8 shadow-xl shadow-black/[0.02]">
-              <div className="space-y-3">
-                <label className="text-[10px] font-black uppercase tracking-[0.25em] text-muted-foreground ml-1">Street Address</label>
-                <textarea 
-                  value={profileData.address} 
-                  onChange={e => setProfileData({...profileData, address: e.target.value})}
-                  placeholder="House No, Apartment, Area, Street Name"
-                  className="w-full p-5 bg-background border border-border focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all h-28 resize-none rounded-xl font-medium"
-                />
+            <div className="flex justify-between items-center mb-8">
+              <div>
+                <h3 className="text-xl font-display font-bold">Delivery Addresses</h3>
+                <p className="text-sm text-muted-foreground">Manage your shipping addresses for a faster checkout experience.</p>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black uppercase tracking-[0.25em] text-muted-foreground ml-1">City</label>
-                  <input 
-                    type="text" 
-                    value={profileData.city} 
-                    onChange={e => setProfileData({...profileData, city: e.target.value})}
-                    className="w-full p-4 bg-background border border-border focus:border-primary outline-none transition-all rounded-xl font-medium"
-                  />
-                </div>
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black uppercase tracking-[0.25em] text-muted-foreground ml-1">State / Province</label>
-                  <input 
-                    type="text" 
-                    value={profileData.state} 
-                    onChange={e => setProfileData({...profileData, state: e.target.value})}
-                    className="w-full p-4 bg-background border border-border focus:border-primary outline-none transition-all rounded-xl font-medium"
-                  />
-                </div>
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black uppercase tracking-[0.25em] text-muted-foreground ml-1">Pincode</label>
-                  <input 
-                    type="text" 
-                    value={profileData.pincode} 
-                    onChange={e => setProfileData({...profileData, pincode: e.target.value})}
-                    className="w-full p-4 bg-background border border-border focus:border-primary outline-none transition-all rounded-xl font-medium"
-                  />
-                </div>
-              </div>
-              <div className="pt-4">
+              {!isEditingAddress && (
                 <button 
-                  type="submit" 
-                  disabled={loading}
-                  className="bg-primary text-white px-12 py-4 font-bold uppercase tracking-[0.2em] text-[10px] rounded-full hover:bg-primary/90 transition-all shadow-xl shadow-primary/20 disabled:opacity-50 active:scale-95 flex items-center gap-2"
+                  onClick={handleAddNewAddress}
+                  className="bg-primary text-white p-4 rounded-full hover:shadow-lg transition-all active:scale-95"
+                  title="Add New Address"
                 >
-                  <SaveLucide size={14} /> {loading ? "Updating..." : "Save Shipping Address"}
+                  <PlusIcon size={20} />
                 </button>
+              )}
+            </div>
+
+            {isEditingAddress ? (
+              <form onSubmit={handleSaveAddress} className="bg-card border border-border p-10 rounded-3xl space-y-8 shadow-xl shadow-black/[0.02]">
+                <h4 className="text-sm font-bold uppercase tracking-widest text-primary border-b border-border pb-4">{selectedAddress ? "Edit Address" : "Add New Address"}</h4>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black uppercase tracking-[0.25em] text-muted-foreground ml-1">Full Name</label>
+                    <input 
+                      type="text" 
+                      required
+                      value={addressForm.full_name} 
+                      onChange={e => setAddressForm({...addressForm, full_name: e.target.value})}
+                      className="w-full p-4 bg-background border border-border focus:border-primary outline-none transition-all rounded-xl font-medium"
+                    />
+                  </div>
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black uppercase tracking-[0.25em] text-muted-foreground ml-1">Phone Number</label>
+                    <input 
+                      type="text" 
+                      required
+                      value={addressForm.phone} 
+                      onChange={e => setAddressForm({...addressForm, phone: e.target.value})}
+                      className="w-full p-4 bg-background border border-border focus:border-primary outline-none transition-all rounded-xl font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black uppercase tracking-[0.25em] text-muted-foreground ml-1">Address Line 1</label>
+                  <input 
+                    type="text" 
+                    required
+                    value={addressForm.address_line_1} 
+                    onChange={e => setAddressForm({...addressForm, address_line_1: e.target.value})}
+                    placeholder="House No, Apartment, Street"
+                    className="w-full p-4 bg-background border border-border focus:border-primary outline-none transition-all rounded-xl font-medium"
+                  />
+                </div>
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black uppercase tracking-[0.25em] text-muted-foreground ml-1">Address Line 2 (Optional)</label>
+                  <input 
+                    type="text" 
+                    value={addressForm.address_line_2} 
+                    onChange={e => setAddressForm({...addressForm, address_line_2: e.target.value})}
+                    placeholder="Landmark, Area, etc."
+                    className="w-full p-4 bg-background border border-border focus:border-primary outline-none transition-all rounded-xl font-medium"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black uppercase tracking-[0.25em] text-muted-foreground ml-1">City</label>
+                    <input type="text" required value={addressForm.city} onChange={e => setAddressForm({...addressForm, city: e.target.value})} className="w-full p-4 bg-background border border-border focus:border-primary outline-none transition-all rounded-xl font-medium" />
+                  </div>
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black uppercase tracking-[0.25em] text-muted-foreground ml-1">State</label>
+                    <input type="text" required value={addressForm.state} onChange={e => setAddressForm({...addressForm, state: e.target.value})} className="w-full p-4 bg-background border border-border focus:border-primary outline-none transition-all rounded-xl font-medium" />
+                  </div>
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black uppercase tracking-[0.25em] text-muted-foreground ml-1">Pincode</label>
+                    <input type="text" required value={addressForm.pincode} onChange={e => setAddressForm({...addressForm, pincode: e.target.value})} className="w-full p-4 bg-background border border-border focus:border-primary outline-none transition-all rounded-xl font-medium" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black uppercase tracking-[0.25em] text-muted-foreground ml-1">Address Type</label>
+                    <div className="flex gap-4">
+                      {["Home", "Work"].map(type => (
+                        <button 
+                          key={type}
+                          type="button"
+                          onClick={() => setAddressForm({...addressForm, address_type: type})}
+                          className={`flex-1 py-3 border-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${addressForm.address_type === type ? "border-primary bg-primary text-white" : "border-border hover:border-primary/30"}`}
+                        >
+                          {type}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 pt-6">
+                    <input 
+                      type="checkbox" 
+                      id="is_default"
+                      checked={addressForm.is_default} 
+                      onChange={e => setAddressForm({...addressForm, is_default: e.target.checked})}
+                      className="w-5 h-5 rounded border-border text-primary focus:ring-primary"
+                    />
+                    <label htmlFor="is_default" className="text-xs font-bold text-muted-foreground">Set as default address</label>
+                  </div>
+                </div>
+
+                <div className="flex gap-4 pt-4">
+                  <button type="submit" disabled={loading} className="flex-1 bg-primary text-white py-4 font-bold uppercase tracking-widest text-[10px] rounded-xl hover:shadow-xl transition-all">
+                    {loading ? "Saving..." : "Save Address"}
+                  </button>
+                  <button type="button" onClick={() => setIsEditingAddress(false)} className="flex-1 border border-border py-4 font-bold uppercase tracking-widest text-[10px] rounded-xl hover:bg-secondary">
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {addresses.length === 0 ? (
+                  <div className="md:col-span-2 py-16 text-center bg-secondary/30 rounded-3xl border border-dashed border-border text-muted-foreground">
+                    <p className="text-sm font-bold uppercase tracking-widest">No addresses saved yet</p>
+                    <button onClick={handleAddNewAddress} className="mt-4 text-primary font-black text-[10px] uppercase tracking-[0.2em] border-b-2 border-primary">Add your first address</button>
+                  </div>
+                ) : (
+                  addresses.map((addr) => (
+                    <div key={addr.address_id} className={`bg-card border p-8 rounded-3xl relative group transition-all duration-500 hover:shadow-xl ${addr.is_default ? "border-primary" : "border-border"}`}>
+                      {addr.is_default && (
+                        <span className="absolute -top-3 left-8 bg-primary text-white text-[8px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-lg">Default Address</span>
+                      )}
+                      
+                      <div className="absolute top-8 right-8 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => handleEditAddress(addr)} className="p-2 bg-secondary rounded-full hover:bg-primary hover:text-white transition-all"><Pencil size={14} /></button>
+                        <button onClick={() => handleDeleteAddress(addr.address_id)} className="p-2 bg-secondary rounded-full hover:bg-destructive hover:text-white transition-all"><Trash2 size={14} /></button>
+                      </div>
+
+                      <div className="mb-4">
+                         <span className="text-[9px] font-black uppercase tracking-widest px-2 py-1 bg-secondary rounded text-primary mb-3 inline-block">{addr.address_type}</span>
+                         <h4 className="font-display text-lg font-bold">{addr.full_name}</h4>
+                         <p className="text-xs font-bold text-muted-foreground mt-1">{addr.phone}</p>
+                      </div>
+                      
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        {addr.address_line_1}<br/>
+                        {addr.address_line_2 && <>{addr.address_line_2}<br/></>}
+                        {addr.city}, {addr.state} - {addr.pincode}<br/>
+                        {addr.country}
+                      </p>
+                    </div>
+                  ))
+                )}
               </div>
-            </form>
+            )}
           </div>
         );
       default:
@@ -642,8 +848,8 @@ const Profile = () => {
               <div className="bg-card border border-border p-12 rounded-[40px] shadow-2xl shadow-black/[0.03] text-center sticky top-32">
                 <div className="relative mx-auto mb-10 w-40 h-40">
                   <div className="w-full h-full rounded-full bg-secondary mx-auto flex items-center justify-center border-8 border-background shadow-2xl overflow-hidden relative group">
-                    {profileData.profile_image ? (
-                      <img src={profileData.profile_image} alt="Profile" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                    {profileData.profile_picture_url ? (
+                      <img src={profileData.profile_picture_url} alt="Profile" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                     ) : (
                       <UserLucide size={80} className="text-muted-foreground" />
                     )}
@@ -666,7 +872,7 @@ const Profile = () => {
                   </div>
                 </div>
                 
-                <h3 className="font-display text-2xl font-black text-foreground mb-1 leading-tight">{user?.name || "Welcome"}</h3>
+                <h3 className="font-display text-2xl font-black text-foreground mb-1 leading-tight">{user?.full_name || user?.name || "Welcome"}</h3>
                 <p className="font-body text-xs text-muted-foreground mb-8 tracking-wide font-medium">{user?.email}</p>
                 
                 <div className="space-y-6 text-left border-t border-border pt-10 mb-12">

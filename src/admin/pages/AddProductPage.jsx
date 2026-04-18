@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,19 +45,50 @@ const sizeOptions   = ["Free Size", "XS", "S", "M", "L", "XL", "XXL", "Custom"];
 
 const selectClass = "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
-export default function AddProductPage({ onDisplayAll }) {
+export default function AddProductPage({ onDisplayAll, source = "admin" }) {
   const navigate = useNavigate();
   const { addProduct, clearAllProducts } = useLocalProducts();
   const { toast } = useToast();
 
+  const [categories, setCategories] = useState([]);
+  const [fetchingCats, setFetchingCats] = useState(true);
+
   const [form, setForm] = useState({
-    name: "", sku: "", seller: "", category: "Sarees", subCategory: "", price: "", mrp: "", stock: "",
+    name: "", sku: "", seller: "", category: "Sarees", category_id: "", 
+    subCategory: "", price: "", mrp: "", stock: "",
     description: "", fabric: "", color: "", work: "", pattern: "",
     sizes: ["Free Size"], images: [], readyToShip: false, featured: false,
+    weight: "", length: "", breadth: "", height: "", brand: "",
+    deliveryCharge: "0", additionalCharge: "0",
+    variants: []
   });
   const [imageFiles, setImageFiles] = useState([]);
   const [errors,     setErrors]     = useState({});
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    const fetchCats = async () => {
+      try {
+        const res = await fetch("/api/categories");
+        const data = await res.json();
+        if (data.success) {
+          setCategories(data.categories);
+          if (data.categories.length > 0) {
+            setForm(p => ({ 
+              ...p, 
+              category: data.categories[0].name, 
+              category_id: data.categories[0].category_id 
+            }));
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching categories:", err);
+      } finally {
+        setFetchingCats(false);
+      }
+    };
+    fetchCats();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -66,8 +97,14 @@ export default function AddProductPage({ onDisplayAll }) {
   };
 
   const handleCategoryChange = (e) => {
-    handleChange(e);
-    setForm((p) => ({ ...p, subCategory: "", fabric: "", work: "", pattern: "" }));
+    const name = e.target.value;
+    const cat = categories.find(c => c.name === name);
+    setForm((p) => ({ 
+      ...p, 
+      category: name, 
+      category_id: cat ? cat.category_id : "",
+      subCategory: "", fabric: "", work: "", pattern: "" 
+    }));
   };
 
   const toggleSize = (size) => {
@@ -75,6 +112,28 @@ export default function AddProductPage({ onDisplayAll }) {
       ...p,
       sizes: p.sizes.includes(size) ? p.sizes.filter((s) => s !== size) : [...p.sizes, size],
     }));
+  };
+
+  const addVariant = () => {
+    setForm(p => ({
+      ...p,
+      variants: [...p.variants, { sku: "", variant_name: "", variant_value: "", price: p.price, stock_quantity: p.stock, weight: p.weight }]
+    }));
+  };
+
+  const removeVariant = (index) => {
+    setForm(p => ({
+      ...p,
+      variants: p.variants.filter((_, i) => i !== index)
+    }));
+  };
+
+  const updateVariant = (index, field, value) => {
+    setForm(p => {
+      const newVariants = [...p.variants];
+      newVariants[index] = { ...newVariants[index], [field]: value };
+      return { ...p, variants: newVariants };
+    });
   };
 
   const handleImageUpload = (e) => {
@@ -137,13 +196,22 @@ export default function AddProductPage({ onDisplayAll }) {
       sizes:         form.sizes.length > 0 ? form.sizes : ["Free Size"],
       readyToShip:   form.readyToShip,
       featured:      form.featured,
+      weight:        form.weight || "",
+      length:        form.length || "",
+      breadth:       form.breadth || "",
+      height:        form.height || "",
+      brand:         form.brand || "",
+      deliveryCharge: Number(form.deliveryCharge) || 0,
+      additionalCharge: Number(form.additionalCharge) || 0,
+      category_id:   form.category_id,
       isNew:         true,
       isExclusive:   false,
       tags:          [],
+      variants:      form.variants
     };
 
     // addProduct is now async (uploads to server)
-    const result = await addProduct(product, imageFiles, 'admin');
+    const result = await addProduct(product, imageFiles, source);
 
     setSubmitting(false);
 
@@ -223,9 +291,17 @@ export default function AddProductPage({ onDisplayAll }) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-foreground mb-1.5">Category *</label>
-              <select name="category" value={form.category} onChange={handleCategoryChange} className={selectClass}>
-                {categoryOptions.map((c) => <option key={c} value={c}>{c}</option>)}
+              <select name="category" value={form.category} onChange={handleCategoryChange} className={selectClass} disabled={fetchingCats}>
+                {fetchingCats ? (
+                  <option>Loading categories...</option>
+                ) : (
+                  categories.map((c) => <option key={c.category_id} value={c.name}>{c.name}</option>)
+                )}
               </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">Brand</label>
+              <Input name="brand" value={form.brand} onChange={handleChange} placeholder="e.g. Trendy Drapes" />
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -268,15 +344,18 @@ export default function AddProductPage({ onDisplayAll }) {
               <Input name="stock" type="number" min="0" value={form.stock} onChange={handleChange} placeholder="50" />
               {errors.stock && <p className="text-xs text-destructive mt-1">{errors.stock}</p>}
             </div>
-          </div>
-          {form.price && form.mrp && Number(form.mrp) > 0 && (
-            <div className="bg-secondary rounded-md px-4 py-2.5">
-              <span className="text-sm text-muted-foreground">Discount: </span>
-              <span className="text-sm font-semibold text-accent">
-                {Math.round(((Number(form.mrp) - Number(form.price)) / Number(form.mrp)) * 100)}% OFF
-              </span>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">Delivery Charge (₹)</label>
+                <Input name="deliveryCharge" type="number" min="0" value={form.deliveryCharge} onChange={handleChange} placeholder="0" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">Additional Charges (₹)</label>
+                <Input name="additionalCharge" type="number" min="0" value={form.additionalCharge} onChange={handleChange} placeholder="0" />
+              </div>
             </div>
-          )}
+          </div>
         </div>
 
         {/* Product Details */}
@@ -316,6 +395,26 @@ export default function AddProductPage({ onDisplayAll }) {
               </select>
             </div>
           </div>
+
+          <h4 className="text-sm font-medium text-foreground mt-4 uppercase tracking-widest text-[10px] text-primary">Physical Dimensions</h4>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pb-4">
+            <div>
+              <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Weight (kg)</label>
+              <Input name="weight" type="number" step="0.01" value={form.weight} onChange={handleChange} placeholder="0.5" />
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Length (cm)</label>
+              <Input name="length" type="number" value={form.length} onChange={handleChange} placeholder="30" />
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Breadth (cm)</label>
+              <Input name="breadth" type="number" value={form.breadth} onChange={handleChange} placeholder="20" />
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Height (cm)</label>
+              <Input name="height" type="number" value={form.height} onChange={handleChange} placeholder="10" />
+            </div>
+          </div>
           <div>
             <label className="block text-sm font-medium text-foreground mb-1.5">Available Sizes</label>
             <div className="flex flex-wrap gap-2">
@@ -331,6 +430,51 @@ export default function AddProductPage({ onDisplayAll }) {
               ))}
             </div>
           </div>
+        </div>
+
+        {/* Variants Section */}
+        <div className="border border-border rounded-lg p-5 space-y-4 bg-card">
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-semibold text-foreground">Product Variants</h3>
+            <Button type="button" variant="outline" size="sm" onClick={addVariant}>
+              <Plus className="w-4 h-4 mr-2" /> Add Variant
+            </Button>
+          </div>
+          {form.variants.length > 0 ? (
+            <div className="space-y-4">
+              {form.variants.map((v, i) => (
+                <div key={i} className="relative grid grid-cols-2 sm:grid-cols-6 gap-3 p-4 border rounded-lg bg-secondary/20">
+                  <button type="button" onClick={() => removeVariant(i)} className="absolute -top-2 -right-2 w-6 h-6 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center shadow-md">
+                    <X className="w-3 h-3" />
+                  </button>
+                  <div className="sm:col-span-2">
+                    <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Variant Name (e.g. Size)</label>
+                    <Input value={v.variant_name} onChange={(e) => updateVariant(i, "variant_name", e.target.value)} placeholder="Size" className="h-8 text-xs" />
+                  </div>
+                  <div className="sm:col-span-1">
+                    <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Value</label>
+                    <Input value={v.variant_value} onChange={(e) => updateVariant(i, "variant_value", e.target.value)} placeholder="XL" className="h-8 text-xs" />
+                  </div>
+                  <div className="sm:col-span-1">
+                    <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">SKU</label>
+                    <Input value={v.sku} onChange={(e) => updateVariant(i, "sku", e.target.value)} placeholder="SKU-XL" className="h-8 text-xs" />
+                  </div>
+                  <div className="sm:col-span-1">
+                    <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Price</label>
+                    <Input type="number" value={v.price} onChange={(e) => updateVariant(i, "price", e.target.value)} className="h-8 text-xs" />
+                  </div>
+                  <div className="sm:col-span-1">
+                    <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Stock</label>
+                    <Input type="number" value={v.stock_quantity} onChange={(e) => updateVariant(i, "stock_quantity", e.target.value)} className="h-8 text-xs" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-6 border-2 border-dashed rounded-lg">
+              <p className="text-sm text-muted-foreground">No variants added. Use variants for products with different sizes, colors, etc.</p>
+            </div>
+          )}
         </div>
 
         {/* Images */}

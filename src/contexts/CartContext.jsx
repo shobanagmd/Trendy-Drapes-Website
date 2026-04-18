@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useCallback, useEffect, use
 import { apiFetch } from "@/utils/api";
 import { useAuth } from "./AuthContext";
 import { toast } from "sonner";
+import emailjs from "emailjs-com";
 
 const CART_KEY = "guest_cart";
 const WISHLIST_KEY = "guest_wishlist";
@@ -9,7 +10,7 @@ const WISHLIST_KEY = "guest_wishlist";
 const CartContext = createContext(undefined);
 
 export const CartProvider = ({ children }) => {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   const [items, setItems] = useState([]);
   const [wishlist, setWishlist] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -32,7 +33,7 @@ export const CartProvider = ({ children }) => {
   };
 
   const fetchBackendData = useCallback(async () => {
-    if (!user) return;
+    if (!user || role !== 'user') return;
     try {
       setLoading(true);
       const [cartRes, wishRes] = await Promise.all([
@@ -99,14 +100,42 @@ export const CartProvider = ({ children }) => {
   }, [fetchBackendData]);
 
   useEffect(() => {
-    if (user) {
+    if (user && role === 'user') {
       syncGuestToDB();
-    } else {
+    } else if (!user) {
       setItems(getGuestCart());
       setWishlist(getGuestWishlist());
       setLoading(false);
+    } else {
+      // Non-user logged in (admin/seller) - clear frontend items to avoid confusion
+      setItems([]);
+      setWishlist([]);
+      setLoading(false);
     }
-  }, [user, syncGuestToDB]);
+  }, [user, role, syncGuestToDB]);
+
+  const sendAddToCartEmail = useCallback((user, product, size) => {
+    if (!user || !user.email) return;
+
+    const templateParams = {
+      name: user.name || user.full_name || "Customer",
+      email: user.email,
+      to_email: user.email,
+      product_name: product.name,
+      product_price: `₹${product.price}`,
+      product_size: size,
+      brand_name: "Trendy Drapes",
+    };
+
+    emailjs.send(
+      import.meta.env.VITE_EMAILJS_SERVICE_ID,
+      import.meta.env.VITE_EMAILJS_CART_TEMPLATE_ID,
+      templateParams,
+      import.meta.env.VITE_EMAILJS_PUBLIC_KEY
+    )
+    .then(() => console.log("Add to Cart email sent"))
+    .catch(err => console.error("Error sending Add to Cart email:", err));
+  }, []);
 
   const addToCart = useCallback(async (product, size = "Free Size") => {
     if (user) {
@@ -117,6 +146,7 @@ export const CartProvider = ({ children }) => {
         });
         if (res.ok) {
           await fetchBackendData();
+          sendAddToCartEmail(user, product, size);
           return true;
         }
         return false;

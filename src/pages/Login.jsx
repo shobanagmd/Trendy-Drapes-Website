@@ -88,7 +88,8 @@ const Login = () => {
       // Navigate based on backend status
       navigate(result.onboardingCompleted ? "/seller/dashboard" : "/seller/onboarding");
     } else {
-      setSession({ name: "User", email: loginEmail }, "user", result.token);
+      const customerName = result.user?.name || "Customer";
+      setSession({ name: customerName, email: loginEmail }, "user", result.token);
       toast.success("Welcome back!");
       navigate("/home");
     }

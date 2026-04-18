@@ -38,6 +38,7 @@ import SettingsPage from "@/admin/pages/SettingsPage";
 import VendorPage from "@/admin/pages/VendorPage";
 import PaymentsPage from "@/admin/pages/PaymentsPage";
 import ReturnsPage from "@/admin/pages/ReturnsPage";
+import CouponsPage from "@/admin/pages/CouponsPage";
 
 // Seller app
 import SellerApp from "./seller/src/App";
@@ -80,6 +81,7 @@ const App = () => (
                   <Route path="products" element={<ProductsPage />} />
                   <Route path="products/add" element={<AddProductPage />} />
                   <Route path="orders" element={<OrdersPage />} />
+                  <Route path="coupons" element={<CouponsPage />} />
                   <Route path="payments" element={<PaymentsPage />} />
                   <Route path="returns" element={<ReturnsPage />} />
                   <Route path="finance" element={<FinancePage />} />

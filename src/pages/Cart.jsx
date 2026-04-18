@@ -24,7 +24,7 @@ const Cart = () => {
           <div className="text-center space-y-4">
             <ShoppingBag size={48} className="mx-auto text-muted-foreground" />
             <h2 className="font-display text-2xl text-foreground">Your cart is empty</h2>
-            <Link to="/collections" className="inline-block bg-primary text-primary-foreground px-8 py-3 font-body text-sm tracking-wider uppercase">
+            <Link to="/collections" className="inline-block bg-primary text-primary-foreground px-10 py-4 font-display text-[1rem] font-black tracking-[0.2em] uppercase hover:bg-primary/90 transition-all rounded-xl shadow-lg shadow-primary/20">
               Continue Shopping
             </Link>
           </div>
@@ -111,7 +111,7 @@ const Cart = () => {
                 <span>Total Amount</span>
                 <span>₹{(cartTotal + 49 + 19).toLocaleString("en-IN")}</span>
               </div>
-              <Link to="/checkout" className="block w-full py-4 bg-primary text-white font-display text-xs font-black tracking-[0.2em] uppercase hover:bg-primary/90 transition-all text-center rounded-xl shadow-lg shadow-primary/20">
+              <Link to="/checkout" className="block w-full py-5 bg-primary text-white font-display text-[1rem] font-black tracking-[0.2em] uppercase hover:bg-primary/90 transition-all text-center rounded-xl shadow-lg shadow-primary/20">
                 Proceed to Checkout
               </Link>
             </div>

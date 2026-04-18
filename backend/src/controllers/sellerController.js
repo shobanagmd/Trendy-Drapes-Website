@@ -17,19 +17,71 @@ exports.getOnboardingStatus = async (req, res) => {
 
 exports.completeOnboarding = async (req, res) => {
   const seller_id = req.user.id;
-  const { store_name, store_description, gstin, phone } = req.body;
-  // File paths would come from multer (simplified here)
+  const { 
+    fullName, mobile, businessType, businessName, legalName, 
+    address, city, state, pincode, country,
+    panNumber, gstin,
+    bankDetails, // JSON string from frontend
+    storeName, storeDescription, pickupAddress, returnAddress
+  } = req.body;
+
+  const client = await db.connect();
   try {
-    await db.query(
+    await client.query('BEGIN');
+
+    // 1. Update Seller Main Info
+    await client.query(
       `UPDATE sellers SET 
-        store_name = $1, store_description = $2, gstin = $3, phone = $4, is_active = TRUE, updated_at = NOW() 
-       WHERE seller_id = $5`,
-      [store_name, store_description, gstin, phone, seller_id]
+        full_name = COALESCE($1, full_name),
+        legal_name = $2,
+        business_type = $3,
+        store_name = $4,
+        store_description = $5,
+        gst_number = $6,
+        pan_number = $7,
+        phone = $8,
+        onboarding_status = 'pending_verification',
+        updated_at = NOW() 
+       WHERE seller_id = $9`,
+      [fullName, legalName || businessName, businessType, storeName, storeDescription, gstin, panNumber, mobile, seller_id]
     );
-    res.json({ success: true, message: "Onboarding completed" });
+
+    // 2. Handle Bank Details
+    if (bankDetails) {
+      const bank = JSON.parse(bankDetails);
+      await client.query(
+        `INSERT INTO bank_accounts (seller_id, account_holder_name, account_number, ifsc_code, bank_name, branch_name, account_type)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         ON CONFLICT (seller_id) DO UPDATE SET
+         account_holder_name = EXCLUDED.account_holder_name,
+         account_number = EXCLUDED.account_number,
+         ifsc_code = EXCLUDED.ifsc_code,
+         bank_name = EXCLUDED.bank_name,
+         branch_name = EXCLUDED.branch_name,
+         account_type = EXCLUDED.account_type`,
+        [seller_id, bank.accountHolderName, bank.accountNumber, bank.ifscCode, bank.bankName, bank.branchName || 'Main', bank.accountType || 'Savings']
+      );
+    }
+
+    // 3. Handle Pickup Location
+    if (pickupAddress) {
+      await client.query(
+        `INSERT INTO seller_pickup_locations (seller_id, address_line_1, city, state, pincode, country, is_default)
+         VALUES ($1, $2, $3, $4, $5, $6, TRUE)
+         ON CONFLICT (seller_id) DO UPDATE SET
+         address_line_1 = EXCLUDED.address_line_1`,
+        [seller_id, pickupAddress, city || 'Unknown', state || 'Unknown', pincode || '000000', country || 'India']
+      );
+    }
+
+    await client.query('COMMIT');
+    res.json({ success: true, message: "Onboarding completed. Your account is under review." });
   } catch (err) {
+    await client.query('ROLLBACK');
     console.error(err);
-    res.status(500).json({ success: false, message: "Server error" });
+    res.status(500).json({ success: false, message: "Server error during onboarding" });
+  } finally {
+    client.release();
   }
 };
 
@@ -49,5 +101,15 @@ exports.getAnalytics = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+exports.getAllSellers = async (req, res) => {
+  try {
+    const result = await db.query("SELECT seller_id, full_name, store_name FROM sellers WHERE is_active = TRUE ORDER BY full_name ASC");
+    res.json({ success: true, sellers: result.rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Server error fetching sellers" });
   }
 };
