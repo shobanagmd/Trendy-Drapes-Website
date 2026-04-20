@@ -1,7 +1,8 @@
+require('dotenv').config({ path: require('path').resolve(__dirname, '.env') });
 const { Client } = require('pg');
 
 const client = new Client({
-  connectionString: 'postgres://postgres:Shobana%40805@localhost:5432/local_db'
+  connectionString: process.env.DATABASE_URL
 });
 
 async function debugEndpoints() {
