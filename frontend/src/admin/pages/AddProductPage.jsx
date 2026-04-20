@@ -1,0 +1,531 @@
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ArrowLeft, Upload, X, Plus } from "lucide-react";
+import { useLocalProducts } from "@/admin/hooks/useLocalProducts";
+import { useToast } from "@/hooks/use-toast";
+
+const categoryOptions = ["Sarees", "Bridal", "Lehengas", "Indo-Western", "Jewellery"];
+
+const subcategoryOptions = {
+  Sarees:         ["Banarasi", "Kanjivaram", "Chiffon", "Silk", "Cotton"],
+  Bridal:         ["Wedding Lehenga", "Bridal Saree", "Reception Gown", "Engagement Outfit", "Bridal Dupatta"],
+  Lehengas:       ["Bridal Lehenga", "Party Wear", "Festive", "A-Line", "Flared"],
+  "Indo-Western": ["Gown", "Fusion Saree", "Crop Top Lehenga", "Dhoti Set", "Cape Dress"],
+  Jewellery:      ["Necklace Set", "Earrings", "Bangles", "Maang Tikka", "Anklet"],
+};
+
+const fabricOptions = {
+  Sarees:         ["Silk", "Cotton", "Georgette", "Chiffon", "Banarasi Silk"],
+  Bridal:         ["Velvet", "Silk", "Net", "Satin", "Organza"],
+  Lehengas:       ["Net", "Silk", "Velvet", "Georgette", "Art Silk"],
+  "Indo-Western": ["Crepe", "Georgette", "Satin", "Cotton Blend", "Lycra"],
+  Jewellery:      [],
+};
+
+const workOptions = {
+  Sarees:         ["Zari", "Embroidery", "Sequins", "Printed", "Hand Painted"],
+  Bridal:         ["Zardozi", "Stone Work", "Kundan", "Resham", "Gota Patti"],
+  Lehengas:       ["Mirror Work", "Thread Work", "Sequins", "Embroidery", "Zari"],
+  "Indo-Western": ["Embroidery", "Printed", "Sequins", "Lace", "Applique"],
+  Jewellery:      ["Kundan", "Meenakari", "Temple", "Polki", "Antique"],
+};
+
+const patternOptions = {
+  Sarees:         ["Woven", "Floral", "Paisley", "Geometric", "Traditional"],
+  Bridal:         ["Embellished", "Floral", "Traditional", "Paisley", "Abstract"],
+  Lehengas:       ["Floral", "Geometric", "Paisley", "Solid", "Abstract"],
+  "Indo-Western": ["Solid", "Printed", "Abstract", "Geometric", "Striped"],
+  Jewellery:      ["Traditional", "Contemporary", "Floral", "Geometric", "Temple"],
+};
+
+const colorOptions = ["Red", "Blue", "Green", "Yellow", "Pink", "Purple", "Orange", "Black", "White", "Gold", "Silver", "Maroon", "Navy", "Teal", "Peach", "Beige"];
+const sizeOptions   = ["Free Size", "XS", "S", "M", "L", "XL", "XXL", "Custom"];
+
+const selectClass = "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+
+export default function AddProductPage({ onDisplayAll, source = "admin" }) {
+  const navigate = useNavigate();
+  const { addProduct, clearAllProducts } = useLocalProducts();
+  const { toast } = useToast();
+
+  const [categories, setCategories] = useState([]);
+  const [fetchingCats, setFetchingCats] = useState(true);
+
+  const [form, setForm] = useState({
+    name: "", sku: "", seller: "", category: "Sarees", category_id: "", 
+    subCategory: "", price: "", mrp: "", stock: "",
+    description: "", fabric: "", color: "", work: "", pattern: "",
+    sizes: ["Free Size"], images: [], readyToShip: false, featured: false,
+    weight: "", length: "", breadth: "", height: "", brand: "",
+    deliveryCharge: "0", additionalCharge: "0",
+    variants: []
+  });
+  const [imageFiles, setImageFiles] = useState([]);
+  const [errors,     setErrors]     = useState({});
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    const fetchCats = async () => {
+      try {
+        const res = await fetch("/api/categories");
+        const data = await res.json();
+        if (data.success) {
+          setCategories(data.categories);
+          if (data.categories.length > 0) {
+            setForm(p => ({ 
+              ...p, 
+              category: data.categories[0].name, 
+              category_id: data.categories[0].category_id 
+            }));
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching categories:", err);
+      } finally {
+        setFetchingCats(false);
+      }
+    };
+    fetchCats();
+  }, []);
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setForm((p) => ({ ...p, [name]: type === "checkbox" ? checked : value }));
+    if (errors[name]) setErrors((p) => ({ ...p, [name]: "" }));
+  };
+
+  const handleCategoryChange = (e) => {
+    const name = e.target.value;
+    const cat = categories.find(c => c.name === name);
+    setForm((p) => ({ 
+      ...p, 
+      category: name, 
+      category_id: cat ? cat.category_id : "",
+      subCategory: "", fabric: "", work: "", pattern: "" 
+    }));
+  };
+
+  const toggleSize = (size) => {
+    setForm((p) => ({
+      ...p,
+      sizes: p.sizes.includes(size) ? p.sizes.filter((s) => s !== size) : [...p.sizes, size],
+    }));
+  };
+
+  const addVariant = () => {
+    setForm(p => ({
+      ...p,
+      variants: [...p.variants, { sku: "", variant_name: "", variant_value: "", price: p.price, stock_quantity: p.stock, weight: p.weight }]
+    }));
+  };
+
+  const removeVariant = (index) => {
+    setForm(p => ({
+      ...p,
+      variants: p.variants.filter((_, i) => i !== index)
+    }));
+  };
+
+  const updateVariant = (index, field, value) => {
+    setForm(p => {
+      const newVariants = [...p.variants];
+      newVariants[index] = { ...newVariants[index], [field]: value };
+      return { ...p, variants: newVariants };
+    });
+  };
+
+  const handleImageUpload = (e) => {
+    const files = Array.from(e.target.files || []);
+    setImageFiles((prev) => [...prev, ...files]);
+    
+    files.forEach((file) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setForm((p) => ({ ...p, images: [...p.images, reader.result] }));
+        if (errors.images) setErrors((p) => ({ ...p, images: "" }));
+      };
+      reader.readAsDataURL(file);
+    });
+    e.target.value = "";
+  };
+
+  const removeImage = (index) => {
+    setForm((p) => ({ ...p, images: p.images.filter((_, i) => i !== index) }));
+    setImageFiles((p) => p.filter((_, i) => i !== index));
+  };
+
+  const validate = () => {
+    const errs = {};
+    if (!form.name.trim()) errs.name = "Name is required";
+    if (!form.price || Number(form.price) <= 0) errs.price = "Valid price is required";
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!validate() || submitting) return;
+
+    setSubmitting(true);
+
+    const price    = Number(form.price) || 0;
+    const mrp      = Number(form.mrp) || price; // fallback mrp to price
+    const discount = mrp > 0 ? Math.round(((mrp - price) / mrp) * 100) : 0;
+
+    const product = {
+      id:            `local-${Date.now()}`,
+      sku:           form.sku.trim() || `SKU-${Date.now()}`,
+      name:          form.name.trim(),
+      seller:        form.seller.trim() || "Trendy Drapes",
+      category:      form.category || "Fashion",
+      subCategory:   form.subCategory || "General",
+      price,
+      originalPrice: mrp,
+      mrp,
+      stock:         form.stock !== "" ? Number(form.stock) : 10,
+      description:   form.description.trim() || "A beautiful authentic piece.",
+      image:         form.images[0] || "📦",
+      images:        form.images,
+      discount,
+      fabric:        form.fabric || "Premium Material",
+      color:         form.color || "Multicolor",
+      work:          form.work || "Detailed Work",
+      pattern:       form.pattern || "Solid",
+      sizes:         form.sizes.length > 0 ? form.sizes : ["Free Size"],
+      readyToShip:   form.readyToShip,
+      featured:      form.featured,
+      weight:        form.weight || "",
+      length:        form.length || "",
+      breadth:       form.breadth || "",
+      height:        form.height || "",
+      brand:         form.brand || "",
+      deliveryCharge: Number(form.deliveryCharge) || 0,
+      additionalCharge: Number(form.additionalCharge) || 0,
+      category_id:   form.category_id,
+      isNew:         true,
+      isExclusive:   false,
+      tags:          [],
+      variants:      form.variants
+    };
+
+    // addProduct is now async (uploads to server)
+    const result = await addProduct(product, imageFiles, source);
+
+    setSubmitting(false);
+
+    if (result.ok) {
+      toast({ title: "✅ Product added!", description: `${product.name} has been added successfully.` });
+      if (onDisplayAll) {
+        onDisplayAll();
+      } else {
+        navigate("/admin/products");
+      }
+      return;
+    }
+
+    if (result.reason === "duplicate") {
+      toast({ title: "Duplicate product", description: "A product with this ID already exists.", variant: "destructive" });
+      return;
+    }
+
+    if (result.reason === "quota") {
+      // Storage is full — offer to clear old products
+      const confirmClear = window.confirm(
+        `⚠️ Storage is full (${result.usedKB} KB used).\n\n` +
+        `This happens because product images are stored in the browser.\n\n` +
+        `Click OK to clear previously added products and try again, or Cancel to keep them.`
+      );
+      if (confirmClear) {
+        clearAllProducts();
+        toast({ title: "Storage cleared", description: "Previous products removed. Please add the product again." });
+      } else {
+        toast({
+          title: "Storage full",
+          description: "Try using smaller images (under 500KB each) or clear browser storage.",
+          variant: "destructive",
+        });
+      }
+      return;
+    }
+
+    toast({ title: "Error", description: "Could not save product. Please try again.", variant: "destructive" });
+  };
+
+  const currentSubcategories = subcategoryOptions[form.category] || [];
+
+  return (
+    <div className="space-y-5 max-w-3xl">
+      <div className="flex items-center gap-4">
+        <div>
+          <h1 className="text-lg font-semibold text-foreground">Add New Product</h1>
+          <p className="text-sm text-muted-foreground">Create a new product listing for the store</p>
+        </div>
+        <Button variant="outline" onClick={() => onDisplayAll ? onDisplayAll() : navigate("/admin/products")} className="ml-auto">
+          Display All Products
+        </Button>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Basic Info */}
+        <div className="border border-border rounded-lg p-5 space-y-4 bg-card">
+          <h3 className="text-base font-semibold text-foreground">Basic Information</h3>
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1.5">Product Name *</label>
+            <Input name="name" value={form.name} onChange={handleChange} placeholder="e.g. Red Silk Banarasi Saree" />
+            {errors.name && <p className="text-xs text-destructive mt-1">{errors.name}</p>}
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">SKU *</label>
+              <Input name="sku" value={form.sku} onChange={handleChange} placeholder="e.g. TD-SAREE-001" />
+              {errors.sku && <p className="text-xs text-destructive mt-1">{errors.sku}</p>}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">{source === "seller" ? "Shop Name *" : "Seller Name *"}</label>
+              <Input name="seller" value={form.seller} onChange={handleChange} placeholder="e.g. Trendy Drapes Store" />
+              {errors.seller && <p className="text-xs text-destructive mt-1">{errors.seller}</p>}
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">Category *</label>
+              <select name="category" value={form.category} onChange={handleCategoryChange} className={selectClass} disabled={fetchingCats}>
+                {fetchingCats ? (
+                  <option>Loading categories...</option>
+                ) : (
+                  categories.map((c) => <option key={c.category_id} value={c.name}>{c.name}</option>)
+                )}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">Brand</label>
+              <Input name="brand" value={form.brand} onChange={handleChange} placeholder="e.g. Trendy Drapes" />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">Subcategory *</label>
+              <select name="subCategory" value={form.subCategory} onChange={handleChange} className={selectClass}>
+                <option value="">Select subcategory</option>
+                {currentSubcategories.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+              {errors.subCategory && <p className="text-xs text-destructive mt-1">{errors.subCategory}</p>}
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1.5">Description *</label>
+            <textarea
+              name="description" value={form.description} onChange={handleChange} rows={3}
+              placeholder="Describe the product..."
+              className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+            {errors.description && <p className="text-xs text-destructive mt-1">{errors.description}</p>}
+          </div>
+        </div>
+
+        {/* Pricing */}
+        <div className="border border-border rounded-lg p-5 space-y-4 bg-card">
+          <h3 className="text-base font-semibold text-foreground">Pricing & Inventory</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">Price (₹) *</label>
+              <Input name="price" type="number" min="0" value={form.price} onChange={handleChange} placeholder="12999" />
+              {errors.price && <p className="text-xs text-destructive mt-1">{errors.price}</p>}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">MRP (₹) *</label>
+              <Input name="mrp" type="number" min="0" value={form.mrp} onChange={handleChange} placeholder="18999" />
+              {errors.mrp && <p className="text-xs text-destructive mt-1">{errors.mrp}</p>}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">Stock *</label>
+              <Input name="stock" type="number" min="0" value={form.stock} onChange={handleChange} placeholder="50" />
+              {errors.stock && <p className="text-xs text-destructive mt-1">{errors.stock}</p>}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">Delivery Charge (₹)</label>
+                <Input name="deliveryCharge" type="number" min="0" value={form.deliveryCharge} onChange={handleChange} placeholder="0" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">Additional Charges (₹)</label>
+                <Input name="additionalCharge" type="number" min="0" value={form.additionalCharge} onChange={handleChange} placeholder="0" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Product Details */}
+        <div className="border border-border rounded-lg p-5 space-y-4 bg-card">
+          <h3 className="text-base font-semibold text-foreground">Product Details</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {form.category !== "Jewellery" && (
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">Fabric *</label>
+                <select name="fabric" value={form.fabric} onChange={handleChange} className={selectClass}>
+                  <option value="">Select fabric</option>
+                  {(fabricOptions[form.category] || []).map((f) => <option key={f} value={f}>{f}</option>)}
+                </select>
+                {errors.fabric && <p className="text-xs text-destructive mt-1">{errors.fabric}</p>}
+              </div>
+            )}
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">Color *</label>
+              <select name="color" value={form.color} onChange={handleChange} className={selectClass}>
+                <option value="">Select color</option>
+                {colorOptions.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+              {errors.color && <p className="text-xs text-destructive mt-1">{errors.color}</p>}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">Work</label>
+              <select name="work" value={form.work} onChange={handleChange} className={selectClass}>
+                <option value="">Select work type</option>
+                {(workOptions[form.category] || []).map((w) => <option key={w} value={w}>{w}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">Pattern</label>
+              <select name="pattern" value={form.pattern} onChange={handleChange} className={selectClass}>
+                <option value="">Select pattern</option>
+                {(patternOptions[form.category] || []).map((p) => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <h4 className="text-sm font-medium text-foreground mt-4 uppercase tracking-widest text-[10px] text-primary">Physical Dimensions</h4>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pb-4">
+            <div>
+              <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Weight (kg)</label>
+              <Input name="weight" type="number" step="0.01" value={form.weight} onChange={handleChange} placeholder="0.5" />
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Length (cm)</label>
+              <Input name="length" type="number" value={form.length} onChange={handleChange} placeholder="30" />
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Breadth (cm)</label>
+              <Input name="breadth" type="number" value={form.breadth} onChange={handleChange} placeholder="20" />
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Height (cm)</label>
+              <Input name="height" type="number" value={form.height} onChange={handleChange} placeholder="10" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1.5">Available Sizes</label>
+            <div className="flex flex-wrap gap-2">
+              {sizeOptions.map((size) => (
+                <button key={size} type="button" onClick={() => toggleSize(size)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                    form.sizes.includes(size)
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-background text-foreground border-border hover:bg-secondary"
+                  }`}>
+                  {size}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Variants Section */}
+        <div className="border border-border rounded-lg p-5 space-y-4 bg-card">
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-semibold text-foreground">Product Variants</h3>
+            <Button type="button" variant="outline" size="sm" onClick={addVariant}>
+              <Plus className="w-4 h-4 mr-2" /> Add Variant
+            </Button>
+          </div>
+          {form.variants.length > 0 ? (
+            <div className="space-y-4">
+              {form.variants.map((v, i) => (
+                <div key={i} className="relative grid grid-cols-2 sm:grid-cols-6 gap-3 p-4 border rounded-lg bg-secondary/20">
+                  <button type="button" onClick={() => removeVariant(i)} className="absolute -top-2 -right-2 w-6 h-6 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center shadow-md">
+                    <X className="w-3 h-3" />
+                  </button>
+                  <div className="sm:col-span-2">
+                    <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Variant Name (e.g. Size)</label>
+                    <Input value={v.variant_name} onChange={(e) => updateVariant(i, "variant_name", e.target.value)} placeholder="Size" className="h-8 text-xs" />
+                  </div>
+                  <div className="sm:col-span-1">
+                    <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Value</label>
+                    <Input value={v.variant_value} onChange={(e) => updateVariant(i, "variant_value", e.target.value)} placeholder="XL" className="h-8 text-xs" />
+                  </div>
+                  <div className="sm:col-span-1">
+                    <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">SKU</label>
+                    <Input value={v.sku} onChange={(e) => updateVariant(i, "sku", e.target.value)} placeholder="SKU-XL" className="h-8 text-xs" />
+                  </div>
+                  <div className="sm:col-span-1">
+                    <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Price</label>
+                    <Input type="number" value={v.price} onChange={(e) => updateVariant(i, "price", e.target.value)} className="h-8 text-xs" />
+                  </div>
+                  <div className="sm:col-span-1">
+                    <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Stock</label>
+                    <Input type="number" value={v.stock_quantity} onChange={(e) => updateVariant(i, "stock_quantity", e.target.value)} className="h-8 text-xs" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-6 border-2 border-dashed rounded-lg">
+              <p className="text-sm text-muted-foreground">No variants added. Use variants for products with different sizes, colors, etc.</p>
+            </div>
+          )}
+        </div>
+
+        {/* Images */}
+        <div className="border border-border rounded-lg p-5 space-y-4 bg-card">
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-semibold text-foreground">Product Images *</h3>
+            <p className="text-xs text-muted-foreground">Images are auto-compressed before saving</p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            {form.images.map((img, i) => (
+              <div key={i} className="relative w-24 h-28 rounded-md overflow-hidden border border-border bg-secondary group">
+                <img src={img} alt={`Preview ${i + 1}`} className="w-full h-full object-cover" />
+                <button type="button" onClick={() => removeImage(i)}
+                  className="absolute top-1 right-1 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
+            <label className="w-24 h-28 rounded-md border-2 border-dashed border-border flex flex-col items-center justify-center cursor-pointer hover:border-primary hover:bg-secondary/50 transition-colors">
+              <Upload className="w-5 h-5 text-muted-foreground mb-1" />
+              <span className="text-[10px] text-muted-foreground">Add Image</span>
+              <input type="file" accept="image/*" multiple onChange={handleImageUpload} className="hidden" />
+            </label>
+          </div>
+          {errors.images && <p className="text-xs text-destructive mt-1">{errors.images}</p>}
+        </div>
+
+        {/* Options */}
+        <div className="border border-border rounded-lg p-5 space-y-4 bg-card">
+          <h3 className="text-base font-semibold text-foreground">Options</h3>
+          <div className="flex flex-col sm:flex-row gap-6">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" name="readyToShip" checked={form.readyToShip} onChange={handleChange}
+                className="w-4 h-4 rounded border-input text-primary focus:ring-primary" />
+              <span className="text-sm text-foreground">Ready to Ship</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" name="featured" checked={form.featured} onChange={handleChange}
+                className="w-4 h-4 rounded border-input text-primary focus:ring-primary" />
+              <span className="text-sm text-foreground">Featured Product</span>
+            </label>
+          </div>
+        </div>
+
+        <Button type="submit" className="w-full" disabled={submitting}>
+          {submitting
+            ? <><span className="animate-spin mr-2 inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full" />Saving & compressing images...</>
+            : <><Plus className="w-4 h-4 mr-2" />Add Product</>
+          }
+        </Button>
+      </form>
+    </div>
+  );
+}
