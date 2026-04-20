@@ -72,3 +72,27 @@ exports.addReview = async (req, res) => {
     res.status(500).json({ success: false, message: "Error adding review" });
   }
 };
+exports.getSellerReviews = async (req, res) => {
+  const seller_id = req.user.id;
+  try {
+    const result = await db.query(`
+      SELECT r.*, c.full_name as customer_name, p.name as product_name, p.image as product_image
+      FROM reviews r
+      JOIN products p ON r.product_id = p.product_id
+      JOIN customers c ON r.customer_id = c.customer_id
+      WHERE p.seller_id = $1
+      ORDER BY r.created_at DESC
+    `, [seller_id]);
+    
+    // Fetch media for each review
+    const reviews = await Promise.all(result.rows.map(async (r) => {
+      const mediaRes = await db.query("SELECT * FROM review_media WHERE review_id = $1", [r.review_id]);
+      return { ...r, media: mediaRes.rows };
+    }));
+
+    res.json({ success: true, reviews });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Error fetching seller reviews" });
+  }
+};

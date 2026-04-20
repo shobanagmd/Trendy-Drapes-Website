@@ -39,4 +39,27 @@ const authorizeRole = (allowedRoles) => {
   };
 };
 
-module.exports = { authenticateToken, authorizeRole };
+const optionalAuthenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) return next();
+
+  jwt.verify(token, SECRET_KEY, (err, decoded) => {
+    if (err) {
+      // If token is invalid or expired, we just skip it but don't block
+      return next();
+    }
+    
+    // UUID VALIDATION
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (decoded.id && !uuidRegex.test(decoded.id)) {
+      return next();
+    }
+
+    req.user = decoded;
+    next();
+  });
+};
+
+module.exports = { authenticateToken, optionalAuthenticateToken, authorizeRole };

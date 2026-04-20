@@ -4,10 +4,11 @@ exports.getAllProducts = async (req, res) => {
   try {
     // Join with images to get the primary image
     const result = await db.query(`
-      SELECT p.*, pi.image_url as main_image, c.name as category_name
+      SELECT p.*, pi.image_url as main_image, c.name as category_name, s.store_name
       FROM products p
       LEFT JOIN product_images pi ON p.product_id = pi.product_id AND pi.is_primary = TRUE
       LEFT JOIN categories c ON p.category_id = c.category_id
+      LEFT JOIN sellers s ON p.seller_id = s.seller_id
       WHERE p.deleted_at IS NULL AND p.is_active = TRUE
       ORDER BY p.created_at DESC
     `);
@@ -22,9 +23,10 @@ exports.getProductById = async (req, res) => {
   const { id } = req.params;
   try {
     const product = await db.query(`
-      SELECT p.*, c.name as category_name
+      SELECT p.*, c.name as category_name, s.store_name
       FROM products p
       LEFT JOIN categories c ON p.category_id = c.category_id
+      LEFT JOIN sellers s ON p.seller_id = s.seller_id
       WHERE p.product_id = $1 AND p.deleted_at IS NULL
     `, [id]);
 

@@ -113,3 +113,23 @@ exports.getAllSellers = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error fetching sellers" });
   }
 };
+exports.updateSellerSettings = async (req, res) => {
+  const seller_id = req.user.id;
+  const { storeName, phone, notificationPrefs } = req.body;
+  
+  try {
+    await db.query(`
+      UPDATE sellers 
+      SET store_name = COALESCE($1, store_name),
+          phone = COALESCE($2, phone),
+          notification_prefs = COALESCE($3, notification_prefs),
+          updated_at = NOW()
+      WHERE seller_id = $4
+    `, [storeName, phone, JSON.stringify(notificationPrefs), seller_id]);
+    
+    res.json({ success: true, message: "Settings updated successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Error updating seller settings" });
+  }
+};

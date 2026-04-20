@@ -12,5 +12,6 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 router.post('/', authenticateToken, upload.array('media', 5), reviewController.addReview);
+router.get('/seller', authenticateToken, reviewController.getSellerReviews);
 
 module.exports = router;

@@ -24,7 +24,8 @@ const app = express();
 const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(",") : [];
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV === 'development') {
+    const isDev = (process.env.NODE_ENV || 'development') === 'development';
+    if (!origin || allowedOrigins.includes(origin) || isDev) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
